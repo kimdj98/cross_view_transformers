@@ -10,3 +10,5 @@ outputs/
 .idea
 wandb
 outputs
+temp
+scripts/temp.py

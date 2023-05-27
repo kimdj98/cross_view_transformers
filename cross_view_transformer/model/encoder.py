@@ -317,14 +317,15 @@ class Encoder(nn.Module):
         self.layers = nn.ModuleList(layers)
 
     def forward(self, batch):
-        b, n, _, _, _ = batch['image'].shape
+        b, n, _, _, _ = batch['image'].shape            # b n c h w
 
-        image = batch['image'].flatten(0, 1)            # b n c h w
+        image = batch['image'].flatten(0, 1)            # (bn) c h w
         I_inv = batch['intrinsics'].inverse()           # b n 3 3
         E_inv = batch['extrinsics'].inverse()           # b n 4 4
 
-        features = [self.down(y) for y in self.backbone(self.norm(image))]
-
+        features = [self.down(y) for y in self.backbone(self.norm(image))] # multi-resolution patch embedding
+        # features[0].shape: torch.Size([24, 32, 56, 120])
+        # features[1].shape: torch.Size([24, 112, 14, 30])
         x = self.bev_embedding.get_prior()              # d H W
         x = repeat(x, '... -> b ...', b=b)              # b d H W
 

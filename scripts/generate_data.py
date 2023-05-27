@@ -25,9 +25,8 @@ def setup(cfg):
     # cfg.loader.prefetch_factor = 2
     # cfg.loader.persistent_workers = False
 
-
-@hydra.main(config_path=Path.cwd() / 'config', config_name='config.yaml')
-def main(cfg):
+@hydra.main(config_path=Path.cwd() / 'config', config_name='config.yaml')    # hydra main function
+def main(cfg):    # main function
     """
     Creates the following dataset structure
 
@@ -41,45 +40,45 @@ def main(cfg):
     If the 'visualization' flag is passed in,
     the generated data will be loaded from disk and shown on screen
     """
-    setup_config(cfg, setup)
+    setup_config(cfg, setup)    # setup the configuration
 
-    data = setup_data_module(cfg)
+    data = setup_data_module(cfg)    # setup the dataset
     viz_fn = None
 
-    if 'visualization' in cfg:
-        viz_fn = setup_viz(cfg)
+    if 'visualization' in cfg:    # if visualization flag is passed then
+        viz_fn = setup_viz(cfg)    # setup the visualization
         load_xform = LoadDataTransform(cfg.data.dataset_dir, cfg.data.labels_dir,
-                                       cfg.data.image, cfg.data.num_classes)
+                                       cfg.data.image, cfg.data.num_classes)    # Load the data into memory
 
-    labels_dir = Path(cfg.data.labels_dir)
-    labels_dir.mkdir(parents=False, exist_ok=True)
+    labels_dir = Path(cfg.data.labels_dir)    # Path of labels directory
+    labels_dir.mkdir(parents=False, exist_ok=True)    # Make directory if not exist
 
-    for split in ['train', 'val']:
+    for split in ['train', 'val']:    # For each split in train and test
         print(f'Generating split: {split}')
 
-        for episode in tqdm(data.get_split(split, loader=False), position=0, leave=False):
-            scene_dir = labels_dir / episode.scene_name
-            scene_dir.mkdir(exist_ok=True, parents=False)
+        for episode in tqdm(data.get_split(split, loader=False), position=0, leave=False):    # Iterating through each episode
+            scene_dir = labels_dir / episode.scene_name     # Path of scene directory
+            scene_dir.mkdir(exist_ok=True, parents=False)   # Make the directory if not exist
 
-            loader = torch.utils.data.DataLoader(episode, collate_fn=list, **cfg.loader)
-            info = []
+            loader = torch.utils.data.DataLoader(episode, collate_fn=list, **cfg.loader)   # Load the data into memory
+            info = []   # List to store the data
 
-            for i, batch in enumerate(tqdm(loader, position=1, leave=False)):
-                info.extend(batch)
+            for i, batch in enumerate(tqdm(loader, position=1, leave=False)):    # Iterate through each batch
+                info.extend(batch)   # Extend the list with batch data
 
                 # Load data from disk to test if it was saved correctly
-                if i == 0 and viz_fn is not None:
-                    unbatched = [load_xform(s) for s in batch]
+                if i == 0 and viz_fn is not None:    # if visualization flag is passed then
+                    unbatched = [load_xform(s) for s in batch]    # Load data in memory
                     rebatched = torch.utils.data.dataloader.default_collate(unbatched)
 
-                    viz = np.vstack(viz_fn(rebatched))
+                    viz = np.vstack(viz_fn(rebatched))    # Show the data on screen
 
-                    cv2.imshow('debug', cv2.cvtColor(viz, cv2.COLOR_RGB2BGR))
+                    cv2.imshow('debug', cv2.cvtColor(viz, cv2.COLOR_RGB2BGR))    # Show the image on screen
                     cv2.waitKey(1)
 
             # Write all info for loading to json
-            scene_json = labels_dir / f'{episode.scene_name}.json'
-            scene_json.write_text(json.dumps(info))
+            scene_json = labels_dir / f'{episode.scene_name}.json'    # Save the data into json format
+            scene_json.write_text(json.dumps(info))    # Dumps the data
 
 
 if __name__ == '__main__':

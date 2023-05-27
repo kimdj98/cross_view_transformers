@@ -48,3 +48,46 @@ decoder:
   blocks: [128, 128, 64]
   residual: True
   factor: 2
+
+# decoder-velocity:
+#   _target_: cross_view_transformer.model.decoder_velocity.Decoder_Velocity
+
+  # dim: ${model.encoder.dim}
+  # blocks: [128, 128, 64]
+  # residual: True
+  # factor: 2
+
+
+# TODO: add these decoders
+
+# decoder-orientation:
+#   _target_: cross_view_transformer.model.decoder_orientation.Decoder_Orientation
+
+#   # dim: ${model.encoder.dim}
+#   # blocks: [128, 128, 64]
+#   # residual: True
+#   # factor: 2
+
+# decoder-yaw:
+#   _target_: cross_view_transformer.model.decoder_yaw.Decoder_Yaw
+
+#   # dim: ${model.encoder.dim}
+#   # blocks: [128, 128, 64]
+#   # residual: True
+#   # factor: 2
+
+# decoder-yawrate:
+#   _target_: cross_view_transformer.model.decoder_yawrate.Decoder_Yawrate
+
+#   # dim: ${model.encoder.dim}
+#   # blocks: [128, 128, 64]
+#   # residual: True
+#   # factor: 2
+
+# decoder-waypoint:
+#   _target_: cross_view_transformer.model.decoder_waypoint.Decoder_Waypoint
+
+#   # dim: ${model.encoder.dim}
+#   # blocks: [128, 128, 64]
+#   # residual: True
+#   # factor: 2

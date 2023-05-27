@@ -83,6 +83,13 @@ class SaveDataTransform:
 
             result['visibility'] = visibility_path
 
+        # velocity_map
+        if batch.get('velocity_map') is not None:
+            velocity_map_path = f'velocity_map_{batch.token}.npz'
+            np.savez_compressed(scene_dir / velocity_map_path, velocity_map=batch.velocity_map)
+
+            result['velocity_map'] = velocity_map_path
+
         return result
 
     def __call__(self, batch):
@@ -175,6 +182,21 @@ class LoadDataTransform(torchvision.transforms.ToTensor):
             result['pose'] = np.float32(sample['pose'])
 
         return result
+    
+    # get velocity map
+    def get_velocity_map(self, sample: Sample):
+        scene_dir = self.labels_dir / sample.scene
+        velocity_map = None
+
+        if sample.velocity_map is not None:
+            velocity_map = np.load(scene_dir / sample.velocity_map)['velocity_map']
+            velocity_map = self.to_tensor(velocity_map)
+
+        result = {
+            'velocity_map': velocity_map,
+        }
+
+        return result
 
     def __call__(self, batch):
         if not isinstance(batch, Sample):
@@ -183,5 +205,6 @@ class LoadDataTransform(torchvision.transforms.ToTensor):
         result = dict()
         result.update(self.get_cameras(batch, **self.image_config))
         result.update(self.get_bev(batch))
+        result.update(self.get_velocity_map(batch))
 
         return result

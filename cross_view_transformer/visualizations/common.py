@@ -82,6 +82,9 @@ class BaseViz:
         self.colors = get_colors(self.SEMANTICS)
         self.colormap = colormap
 
+    def save_img(image, output):
+        cv2.imwrite(f'{output}.png', image)
+
     def visualize_pred(self, bev, pred, threshold=None):
         """
         (c, h, w) torch float {0, 1}
@@ -176,7 +179,7 @@ class BaseViz:
                 if len(imgs) == 6:
                     a = np.hstack(imgs[:3])
                     b = np.hstack(imgs[3:])
-                    left = resize(np.vstack((a, b)), right)
+                    left = resize(np.vstack((a, b)), right) # check how this works later
                 else:
                     left = np.hstack([resize(x, right) for x in imgs])
 

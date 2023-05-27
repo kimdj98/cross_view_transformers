@@ -11,6 +11,7 @@ from shapely.geometry import MultiPolygon
 from .common import INTERPOLATION, get_view_matrix, get_pose, get_split
 from .transforms import Sample, SaveDataTransform
 
+from nuscenes.prediction import PredictHelper
 
 STATIC = ['lane', 'road_segment']
 DIVIDER = ['road_divider', 'lane_divider']
@@ -20,6 +21,8 @@ DYNAMIC = [
     'pedestrian',
     'motorcycle', 'bicycle',
 ]
+
+VEHICLE = ['car', 'truck', 'bus', 'trailer', 'construction', 'motorcycle', 'bicycle']
 
 CLASSES = STATIC + DIVIDER + DYNAMIC
 NUM_CLASSES = len(CLASSES)
@@ -268,6 +271,47 @@ class NuScenesDataset(torch.utils.data.Dataset):
 
             yield p                                                                     # 3 7
 
+    def convert_to_velocity_box(self, sample, annotations):
+        # Import here so we don't require nuscenes-devkit unless regenerating labels
+        from nuscenes.utils import data_classes
+
+        V = self.view
+        M_inv = np.array(sample['pose_inverse'])
+        S = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0, 1],
+        ])
+
+        for a in annotations:
+            box = data_classes.Box(a['translation'], a['size'], Quaternion(a['rotation']))
+
+            corners = box.bottom_corners()                                              # 3 4
+            center = corners.mean(-1)                                                   # 3
+            front = (corners[:, 0] + corners[:, 1]) / 2.0                               # 3
+            left = (corners[:, 0] + corners[:, 3]) / 2.0                                # 3
+
+            p = np.concatenate((corners, np.stack((center, front, left), -1)), -1)      # 3 7
+            p = np.pad(p, ((0, 1), (0, 0)), constant_values=1.0)                        # 4 7
+            p = V @ S @ M_inv @ p                                                       # 3 7
+            
+            # calculate velocity using center of vehicle
+            if a["prev"]:
+                prev = self.nusc.get('sample_annotation', a["prev"])
+                prev_box = data_classes.Box(prev['translation'], prev['size'], Quaternion(prev['rotation']))
+
+                prev_corners = prev_box.bottom_corners()                                # 3 4
+                prev_center = prev_corners.mean(-1)                                     # 3
+
+                velocity = center - prev_center                                         # 3
+
+            else:
+                velocity = np.zeros(3)                                                  # 3
+
+
+            yield p, velocity                                                                 # 3 7
+
+
     def get_category_index(self, name, categories):
         """
         human.pedestrian.adult
@@ -383,14 +427,75 @@ class NuScenesDataset(torch.utils.data.Dataset):
         for anns in anns_by_category:
             render = np.zeros((h, w), dtype=np.uint8)
 
+            # fill in the polygons
             for p in self.convert_to_box(sample, anns):
-                p = p[:2, :4]
+                p = p[:2, :4] # 2 4
 
                 cv2.fillPoly(render, [p.round().astype(np.int32).T], 1, INTERPOLATION)
 
             result.append(render)
 
         return 255 * np.stack(result, -1)
+
+    def get_velocity_layers(self,
+                            sample, 
+                            vehicle_annotations, 
+                            debug=False # debug keyword for visualization
+                            ): 
+        h, w = self.bev_shape[:2]
+        result = list()
+
+        if debug:
+            visualization_map = np.ones((h, w, 3), dtype=np.uint8)*255 # set background to white
+
+        v_x_map = np.zeros((h, w))
+        v_y_map = np.zeros((h, w))
+        render = np.zeros((h, w))
+
+        # fill in the polygons
+        for p, velocity in self.convert_to_velocity_box(sample, vehicle_annotations):
+            p = p[:2, :4] # 2 4
+
+            velocity = velocity[:2] * 2 # multiply by 2 since the fps is 2Hz
+
+            # convert velocity into polar coordinates
+            magnitude, angle = cv2.cartToPolar(velocity[0], velocity[1])
+
+            mask = cv2.fillPoly(render, [p.round().astype(np.int32).T], 1, INTERPOLATION)
+            v_x_map += mask * velocity[0] # for every annotation in the sample, add x velocity to the map
+            v_y_map += mask * velocity[1] # for every annotation in the sample, add y velocity to the map
+
+            if debug: # if debug mode is on, visualize the velocity in 2d BEV
+                magnitude = magnitude[:1] * 100 # multiply by 100 to make the visualization clearer
+                angle = angle[:1]
+
+                # normalize angle values to range 0-360
+                hue = ((angle / (2 * np.pi)) * 360).astype(np.uint8)
+
+                # set saturation/value to max
+                saturation = np.full_like(hue, 255)
+                value = np.full_like(hue, magnitude)
+
+                hsv = cv2.merge([hue, saturation, value])
+                bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+                bgr = bgr[0][0]
+
+                color = (int(bgr[0]), int(bgr[1]), int(bgr[2]))
+
+                cv2.fillPoly(visualization_map, [p.round().astype(np.int32).T], color, INTERPOLATION) # visualize the velocity in 2d BEV
+                # DEBUG: print veloicty magnitude color
+                # print(f"======================================")
+                # print(f"velocity: ({velocity[0]}, {velocity[1]})")
+                # print(f"magnitude: {magnitude}, angle: {hue}")
+                # print(f"color: {color}")
+                
+
+        if debug:
+            cv2.imwrite(f"{sample['scene']}_{sample['token']}.png", visualization_map)
+
+        v_map = np.stack([v_x_map, v_y_map], -1)
+
+        return v_map
 
     def __len__(self):
         return len(self.samples)
@@ -399,14 +504,15 @@ class NuScenesDataset(torch.utils.data.Dataset):
         sample = self.samples[idx]
 
         # Raw annotations
-        anns_dynamic = self.get_annotations_by_category(sample, DYNAMIC)
+        anns_dynamic = self.get_annotations_by_category(sample, DYNAMIC) 
         anns_vehicle = self.get_annotations_by_category(sample, ['vehicle'])[0]
 
-        static = self.get_static_layers(sample, STATIC)                             # 200 200 2
-        dividers = self.get_line_layers(sample, DIVIDER)                            # 200 200 2
-        dynamic = self.get_dynamic_layers(sample, anns_dynamic)                     # 200 200 8
+        static = self.get_static_layers(sample, STATIC)                             # 200 200 2 lane, road_segment
+        dividers = self.get_line_layers(sample, DIVIDER)                            # 200 200 2 road_divider, lane_divider
+        dynamic = self.get_dynamic_layers(sample, anns_dynamic)                     # 200 200 8 car, truck, bus, trailer, construction, pedestrian, motorcycle, bicycle
+        velocity_map = self.get_velocity_layers(sample, anns_vehicle, debug=False)   # 200 200 2 vehicles
+        ############################## later: get rid of debug=True ##############################
         bev = np.concatenate((static, dividers, dynamic), -1)                       # 200 200 12
-
         assert bev.shape[2] == NUM_CLASSES
 
         # Additional labels for vehicles only.
@@ -416,6 +522,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
         data = Sample(
             view=self.view.tolist(),
             bev=bev,
+            velocity_map=velocity_map,
             aux=aux,
             visibility=visibility,
             **sample
