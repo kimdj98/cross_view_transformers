@@ -1,104 +1,72 @@
 _target_: cross_view_transformer.model.wpp.WaypointPredictor
-vehcile_cvt:
-  _target_: cross_view_transformer.model.cvt.CrossViewTransformer
+cvt_road_encoder:
+  _target_: cross_view_transformer.model.encoder.Encoder
 
-  dim_last: 64
+  dim: 128
+  scale: 1.0
+  middle: [2, 2]
 
-  outputs:
-    bev: [0, 1]
+  backbone:
+    _target_: cross_view_transformer.model.backbones.efficientnet.EfficientNetExtractor
 
-  encoder:
-    _target_: cross_view_transformer.model.encoder.Encoder
+    model_name: efficientnet-b4
+    layer_names: ['reduction_2', 'reduction_4']
+    image_height: ${data.image.h}
+    image_width: ${data.image.w}
 
-    dim: 128
-    scale: 1.0
-    middle: [2, 2]
+  cross_view:
+    heads: 4
+    dim_head: 32
+    qkv_bias: True
+    skip: True
+    no_image_features: False
 
-    backbone:
-      _target_: cross_view_transformer.model.backbones.efficientnet.EfficientNetExtractor
+    image_height: ${data.image.h}
+    image_width: ${data.image.w}
 
-      model_name: efficientnet-b4
-      layer_names: ['reduction_2', 'reduction_4']
-      image_height: ${data.image.h}
-      image_width: ${data.image.w}
+  bev_embedding:
+    sigma: 1.0
 
-    cross_view:
-      heads: 4
-      dim_head: 32
-      qkv_bias: True
-      skip: True
-      no_image_features: False
+    bev_height: ${data.bev.h}
+    bev_width: ${data.bev.w}
+    h_meters: ${data.bev.h_meters}
+    w_meters: ${data.bev.w_meters}
+    offset: ${data.bev.offset}
 
-      image_height: ${data.image.h}
-      image_width: ${data.image.w}
-
-    bev_embedding:
-      sigma: 1.0
-
-      bev_height: ${data.bev.h}
-      bev_width: ${data.bev.w}
-      h_meters: ${data.bev.h_meters}
-      w_meters: ${data.bev.w_meters}
-      offset: ${data.bev.offset}
-
-      decoder_blocks: ${model.decoder.blocks}
-
-  decoder:
-    _target_: cross_view_transformer.model.decoder.Decoder
-
-    dim: ${model.encoder.dim}
-    blocks: [128, 128, 64]
-    residual: True
-    factor: 2
+    decoder_blocks: ${model.decoder.blocks}
     
-road_cvt:
-    _target_: cross_view_transformer.model.cvt.CrossViewTransformer
+cvt_vehicle_encoder:
+  _target_: cross_view_transformer.model.encoder.Encoder
 
-  dim_last: 64
+  dim: 128
+  scale: 1.0
+  middle: [2, 2]
 
-  outputs:
-    bev: [0, 1]
+  backbone:
+    _target_: cross_view_transformer.model.backbones.efficientnet.EfficientNetExtractor
 
-  encoder:
-    _target_: cross_view_transformer.model.encoder.Encoder
+    model_name: efficientnet-b4
+    layer_names: ['reduction_2', 'reduction_4']
+    image_height: ${data.image.h}
+    image_width: ${data.image.w}
 
-    dim: 128
-    scale: 1.0
-    middle: [2, 2]
+  cross_view:
+    heads: 4
+    dim_head: 32
+    qkv_bias: True
+    skip: True
+    no_image_features: False
 
-    backbone:
-      _target_: cross_view_transformer.model.backbones.efficientnet.EfficientNetExtractor
+    image_height: ${data.image.h}
+    image_width: ${data.image.w}
 
-      model_name: efficientnet-b4
-      layer_names: ['reduction_2', 'reduction_4']
-      image_height: ${data.image.h}
-      image_width: ${data.image.w}
+  bev_embedding:
+    sigma: 1.0
 
-    cross_view:
-      heads: 4
-      dim_head: 32
-      qkv_bias: True
-      skip: True
-      no_image_features: False
+    bev_height: ${data.bev.h}
+    bev_width: ${data.bev.w}
+    h_meters: ${data.bev.h_meters}
+    w_meters: ${data.bev.w_meters}
+    offset: ${data.bev.offset}
 
-      image_height: ${data.image.h}
-      image_width: ${data.image.w}
-
-    bev_embedding:
-      sigma: 1.0
-
-      bev_height: ${data.bev.h}
-      bev_width: ${data.bev.w}
-      h_meters: ${data.bev.h_meters}
-      w_meters: ${data.bev.w_meters}
-      offset: ${data.bev.offset}
-
-      decoder_blocks: ${model.decoder.blocks}
-
-  decoder:
-    _target_: cross_view_transformer.model.decoder.Decoder
-
-    dim: ${model.encoder.dim}
-    blocks: [128, 128, 64]
-    residual: True
-    factor: 2
+    decoder_blocks: ${model.decoder.blocks}
