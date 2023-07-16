@@ -19,8 +19,11 @@ CONFIG_NAME = 'config.yaml'
 
 def maybe_resume_training(experiment):
     save_dir = Path(experiment.save_dir).resolve()
-    checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
+    # checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
+    # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_vehicles_50k.ckpt'))
 
+    checkpoints = list(save_dir.glob(f'**/0713_174354/checkpoints/*.ckpt'))
+    
     log.info(f'Searching {save_dir}.')
 
     if not checkpoints:
@@ -68,7 +71,9 @@ def main(cfg):
                          strategy=DDPStrategy(find_unused_parameters=False),
                          accelerator="gpu",
                          **cfg.trainer,
-                         fast_dev_run=True)
+                         fast_dev_run=False)
+    
+    ckpt_path = None
 
     trainer.fit(model_module, datamodule=data_module, ckpt_path=ckpt_path)
 

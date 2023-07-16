@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - override /model: wpp
+  - override /data: nuscenes_waypoint
+
+model:
+  outputs:
+    bev: [0, 1]
+    center: [1, 2]
