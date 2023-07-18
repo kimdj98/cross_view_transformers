@@ -72,10 +72,11 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
 
-    if 'to_logits.3.weight' in state_dict:
-        del state_dict['to_logits.3.weight']
-    if 'to_logits.3.bias' in state_dict:
-        del state_dict['to_logits.3.bias']
+    # erase part that doesn't match
+    # if 'to_logits.3.weight' in state_dict:
+    #     del state_dict['to_logits.3.weight']
+    # if 'to_logits.3.bias' in state_dict:
+    #     del state_dict['to_logits.3.bias']
 
     backbone = setup_network(cfg)
     backbone.load_state_dict(state_dict, strict=False)

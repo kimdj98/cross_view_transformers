@@ -22,7 +22,7 @@ def maybe_resume_training(experiment):
     # checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
     # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_vehicles_50k.ckpt'))
 
-    checkpoints = list(save_dir.glob(f'**/0713_174354/checkpoints/*.ckpt'))
+    checkpoints = list(save_dir.glob(f'**/0714_170410/checkpoints/*.ckpt'))
     
     log.info(f'Searching {save_dir}.')
 
