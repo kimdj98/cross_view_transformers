@@ -139,7 +139,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
         data = []
         sample_token = scene_record['first_sample_token']
 
-        for i in range(scene_record['nbr_samples'] - 12): # for each sample in the scene (except the last 12)
+        for i in range(scene_record['nbr_samples'] - 14): # for each sample in the scene (except the last 12)
         # while sample_token:
             sample_record = self.nusc.get('sample', sample_token)
 
@@ -200,8 +200,11 @@ class NuScenesDataset(torch.utils.data.Dataset):
         past_acc        = np.zeros((5,2))
         past_yaw        = np.zeros((5,1))
 
-        label_waypoint  = np.zeros((12,2))
-        has_pred        = np.zeros((12,1))
+        label_waypoint  = np.zeros((14,2)) # later cut off to 12 time steps
+        has_pred        = np.zeros((14,1)) 
+        label_vel       = np.zeros((13,2)) # later cut off to 12 time steps
+        label_acc       = np.zeros((12,2)) 
+        label_yaw       = np.zeros((14,1))  
 
         # get ego states
         # careful of thinking prev as past token, prev token is future time step token
@@ -255,8 +258,9 @@ class NuScenesDataset(torch.utils.data.Dataset):
 
         curr_token = sample_record['token']
         curr_token = self.nusc.get('sample', curr_token)['next']
-        # get label waypoint
-        for i in range(12):
+
+        # get labels
+        for i in range(14):
             if not curr_token:
                 break
             
@@ -265,10 +269,18 @@ class NuScenesDataset(torch.utils.data.Dataset):
             lidar_data  = self.nusc.get('sample_data', curr_sample['data']['LIDAR_TOP'])
             curr_ego_token = lidar_data['ego_pose_token']
             curr_coordinate = self.nusc.get('ego_pose', curr_ego_token)['translation'][:2] - orig
+            curr_yaw = math.degrees(Quaternion(self.nusc.get('ego_pose', curr_ego_token)['rotation']).yaw_pitch_roll[0]) - orig_yaw
             
             label_waypoint[i, :] = curr_coordinate
+            label_yaw[i, :] = curr_yaw
             has_pred[i, :] = 1
             curr_token = self.nusc.get('sample', curr_token)['next']
+
+            if (i-1) >= 0:
+                label_vel[i-1, :] = (label_waypoint[i, :] - label_waypoint[i-1, :]) / 0.5
+            
+            if (i-2) >= 0:
+                label_acc[i-2, :] = (label_vel[i-1, :] - label_vel[i-2, :]) / 0.5
 
         assert has_pred.all() == 1, "all waypoints should have prediction"
 
@@ -295,7 +307,10 @@ class NuScenesDataset(torch.utils.data.Dataset):
             'past_yaw': past_yaw.tolist(),
 
             # label info
-            'label_waypoint': label_waypoint.tolist(),
+            'label_waypoint': label_waypoint[:12].tolist(),
+            'label_vel':      label_vel[:12].tolist(),
+            'label_acc':      label_acc[:12].tolist(),
+            'label_yaw':      label_yaw[:12].tolist(),
         }
 
     def get_dynamic_objects(self, sample, annotations):
