@@ -3,7 +3,9 @@ defaults:
   - override /model: wpp
   - override /data: nuscenes_waypoint
 
+  - override /loss: mse_loss
+  - override /metrics: ADE_FDE_metrics
+
 model:
   outputs:
-    bev: [0, 1]
-    center: [1, 2]
+    waypoint: [0, 1]

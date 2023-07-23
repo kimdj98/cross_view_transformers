@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp.WaypointPredictor
+_target_: cross_view_transformer.model.wpp.WppNetwork
 cvt_road_encoder:
   _target_: cross_view_transformer.model.encoder.Encoder
 
@@ -33,7 +33,7 @@ cvt_road_encoder:
     w_meters: ${data.bev.w_meters}
     offset: ${data.bev.offset}
 
-    decoder_blocks: ${model.decoder.blocks}
+    
     
 cvt_vehicle_encoder:
   _target_: cross_view_transformer.model.encoder.Encoder
@@ -68,5 +68,3 @@ cvt_vehicle_encoder:
     h_meters: ${data.bev.h_meters}
     w_meters: ${data.bev.w_meters}
     offset: ${data.bev.offset}
-
-    decoder_blocks: ${model.decoder.blocks}

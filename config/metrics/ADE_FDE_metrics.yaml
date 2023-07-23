@@ -1,0 +1,5 @@
+ADE:
+  _target_: cross_view_transformer.metrics.ADEMetric
+
+FDE:
+  _target_: cross_view_transformer.metrics.FDEMetric

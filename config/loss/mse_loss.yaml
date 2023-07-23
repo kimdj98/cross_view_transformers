@@ -1,0 +1,19 @@
+# wp_weight: 1.0
+# wp:
+#   _target_: cross_view_transformer.losses.WppLoss
+
+#   alpha: 1.0
+#   beta: 1.0
+
+# MinMSE_weight: 1.0
+# MinMSE:
+#   _target_: cross_view_transformer.losses.MinMSELoss
+
+# CE_weight: 1.0
+# CE:
+#   _target_: cross_view_transformer.losses.CELoss
+
+
+MSE_weight: 1.0
+MSE:
+  _target_: cross_view_transformer.losses.MSELoss

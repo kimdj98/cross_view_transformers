@@ -1,7 +1,7 @@
 import torch
 
 from torchmetrics import Metric
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 
 class BaseIoUMetric(Metric):
@@ -70,3 +70,50 @@ class IoUMetric(BaseIoUMetric):
             label = label[mask]                                                             # m
 
         return super().update(pred, label)
+
+class ADEMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.min_ADE = 0.0
+        self.total = 0
+
+    def update(self, pred, batch):
+        B, _, _ = pred.shape
+        coord = pred[:, :, :-1]
+        label = batch['label_waypoint'].view(-1, 24)[:, None, :]
+
+        SE = (coord - label) ** 2
+        SSE = torch.sum(SE, dim=2)
+
+        min_SSE = torch.min(SSE, dim=1, keepdim=True)[0]
+        self.min_ADE += torch.sum(min_SSE) / 12
+
+        self.total += B
+
+    def compute(self):
+        return self.min_ADE / self.total
+
+class FDEMetric(Metric):
+    def __init__(self):
+        super().__init__()
+        self.min_FDE = 0.0
+        self.total = 0
+
+    def update(self, pred, batch):
+        B, _, _ = pred.shape
+        coord = pred[:, :, :-1]
+        label = batch['label_waypoint'].view(-1, 24)[:, None, :]
+
+        coord = coord[:, :, -2:]
+        label = label[:, :, -2:]
+
+        SE = (coord - label) ** 2
+        SSE = torch.sum(SE, dim=2)
+
+        min_SSE = torch.min(SSE, dim=1, keepdim=True)[0]
+        self.min_FDE += torch.sum(min_SSE) / 12
+
+        self.total += B
+
+    def compute(self):
+        return self.min_FDE / self.total

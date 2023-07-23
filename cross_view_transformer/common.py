@@ -84,6 +84,49 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
     return backbone
 
 
+def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
+    checkpoint = torch.load(checkpoint_path)
+
+    cfg = DictConfig(checkpoint['hyper_parameters'])
+
+    cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
+    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
+    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
+    # cfg['model']['encoder']['cross_view'].pop('spherical')
+    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
+    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+    cfg = DictConfig(cfg)
+
+    state_dict = remove_prefix(checkpoint['state_dict'], prefix)
+
+    backbone = setup_network(cfg)
+    backbone.load_state_dict(state_dict, strict=True)
+
+    return backbone.encoder
+
+def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
+    checkpoint = torch.load(checkpoint_path)
+
+    cfg = DictConfig(checkpoint['hyper_parameters'])
+
+    cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
+    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
+    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
+    # cfg['model']['encoder']['cross_view'].pop('spherical')
+    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
+    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+    cfg = DictConfig(cfg)
+
+    state_dict = remove_prefix(checkpoint['state_dict'], prefix)
+
+    backbone = setup_network(cfg)
+    backbone.load_state_dict(state_dict, strict=True)
+
+
+
+    return backbone.encoder
+
+
 def remove_prefix(state_dict: Dict, prefix: str) -> Dict:
     result = dict()
 
