@@ -27,15 +27,45 @@ class WppNetwork(nn.Module):
         self.state_projection = nn.Sequential(nn.Linear(7, 128))
         
         self.fc = nn.Sequential(
-                                nn.Linear(128*25*25 + 128*25*25 + 5*7, 2048),
+                                nn.Linear(9251, 1024),
                                 nn.ReLU(),
-                                nn.Linear(2048, 2048),
+                                nn.Linear(1024, 1024),
                                 nn.ReLU(),
-                                nn.Linear(2048, 2048),
+                                nn.Linear(1024, modes*(12*2 + 1)) # predict 10 trajectories for 6 seconds with probabilities
+        )
+
+        self.conv = nn.Sequential(
+                                nn.Conv2d(3, 32, 3, stride=1, padding=1),
                                 nn.ReLU(),
-                                nn.Linear(2048, 2048),
+                                nn.Conv2d(32, 64, 3, stride=1, padding=1),
                                 nn.ReLU(),
-                                nn.Linear(2048, modes*((12*2+1))) # predict 10 trajectories for 6 seconds with probabilities
+                                nn.MaxPool2d(2, stride=2),
+
+                                nn.Conv2d(64, 128, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.Conv2d(128, 128, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.MaxPool2d(2, stride=2),
+
+                                nn.Conv2d(128, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.Conv2d(256, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.MaxPool2d(2, stride=2),
+
+                                nn.Conv2d(256, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.Conv2d(256, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.MaxPool2d(2, stride=2),
+
+                                nn.Conv2d(256, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.Conv2d(256, 256, 3, stride=1, padding=1),
+                                nn.ReLU(),
+                                nn.MaxPool2d(2, stride=2),
+
+                                nn.Flatten()
         )
 
     def forward(self, batch):
@@ -45,6 +75,15 @@ class WppNetwork(nn.Module):
         enc_road = self.cvt_road_encoder(batch)                                                                          # (B, 128, 25, 25)
         enc_vehicle = self.cvt_vehicle_encoder(batch)                                                                    # (B, 128, 25, 25)
 
+
+        road_bev = enc_road['bev']
+        vehicle_bev = enc_vehicle['bev']
+        vehicle_center = enc_vehicle['center']
+
+        x = torch.concat((road_bev.detach(), vehicle_bev.detach(), vehicle_center.detach()), dim=1) # (B, 3, 200, 200)
+
+        x = self.conv(x)
+
         # Gather state data
         state_components = [batch["past_coordinate"], batch["past_vel"], 
                             batch["past_acc"], batch["past_yaw"]]
@@ -52,10 +91,10 @@ class WppNetwork(nn.Module):
         state = torch.cat(state_components, dim=2)    # (B, 5, 7)
 
         # Reshape encoded features and state data for output
-        reshaped_components = [comp.reshape(B, -1) for comp in [enc_road.detach(), enc_vehicle.detach(), state]]
+        reshaped_components = [comp.reshape(B, -1) for comp in [x, state]]
 
         # Concatenate reshaped data along dimension 1
-        output = torch.cat(reshaped_components, dim=1) # (B, 128*25*25 + 128*25*25 + 5*7)
+        output = torch.cat(reshaped_components, dim=1) # (B, 9251)
 
         # predict 10 trajectories for 6 seconds with probabilities
         output = self.fc(output) # (B, M*(12*2+1))

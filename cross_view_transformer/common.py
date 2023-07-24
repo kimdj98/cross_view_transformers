@@ -102,7 +102,7 @@ def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
     backbone = setup_network(cfg)
     backbone.load_state_dict(state_dict, strict=True)
 
-    return backbone.encoder
+    return backbone
 
 def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
     checkpoint = torch.load(checkpoint_path)
@@ -124,7 +124,7 @@ def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
 
 
 
-    return backbone.encoder
+    return backbone
 
 
 def remove_prefix(state_dict: Dict, prefix: str) -> Dict:
