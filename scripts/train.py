@@ -24,7 +24,7 @@ def maybe_resume_training(experiment):
     # checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
     # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_vehicles_50k.ckpt'))
 
-    checkpoints = list(save_dir.glob(f'**/0714_170410/checkpoints/*.ckpt'))
+    checkpoints = list(save_dir.glob(f'**/nuscenes_waypoint2.ckpt'))
 
     
     log.info(f'Searching {save_dir}.')
@@ -47,6 +47,12 @@ def main(cfg):
 
     # Create and load model/data
     model_module, data_module, viz_fn = setup_experiment(cfg)
+
+    ckpt_path = maybe_resume_training(cfg.experiment)
+
+    log.info(f'Found {ckpt_path}.')
+    model_module.backbone = load_backbone(ckpt_path)
+    log.info(f'Loaded {ckpt_path}.')
 
     # seperate model loading for cross_view_transformers_waypoint
     if cfg.experiment.project == 'cross_view_transformers_waypoint':
@@ -100,7 +106,7 @@ def main(cfg):
                          **cfg.trainer,
                          fast_dev_run=False)
     
-    ckpt_path = None
+    # ckpt_path = None
 
     trainer.fit(model_module, datamodule=data_module, ckpt_path=ckpt_path)
 

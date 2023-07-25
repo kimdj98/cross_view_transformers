@@ -79,8 +79,8 @@ class ADEMetric(Metric):
 
     def update(self, pred, batch):
         B, _, _ = pred.shape
-        coord = pred[:, :, :-1]
-        label = batch['label_waypoint'].view(-1, 24)[:, None, :]
+        coord = pred[:, :, :-1].detach()
+        label = batch['label_waypoint'].view(-1, 24)[:, None, :].detach()
 
         SE = (coord - label) ** 2
         SSE = torch.sum(SE, dim=2)
@@ -101,8 +101,8 @@ class FDEMetric(Metric):
 
     def update(self, pred, batch):
         B, _, _ = pred.shape
-        coord = pred[:, :, :-1]
-        label = batch['label_waypoint'].view(-1, 24)[:, None, :]
+        coord = pred[:, :, :-1].detach()
+        label = batch['label_waypoint'].view(-1, 24)[:, None, :].detach()
 
         coord = coord[:, :, -2:]
         label = label[:, :, -2:]

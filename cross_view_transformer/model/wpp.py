@@ -75,7 +75,6 @@ class WppNetwork(nn.Module):
         enc_road = self.cvt_road_encoder(batch)                                                                          # (B, 128, 25, 25)
         enc_vehicle = self.cvt_vehicle_encoder(batch)                                                                    # (B, 128, 25, 25)
 
-
         road_bev = enc_road['bev']
         vehicle_bev = enc_vehicle['bev']
         vehicle_center = enc_vehicle['center']

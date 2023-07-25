@@ -72,12 +72,9 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
 
-    # erase part that doesn't match
-    # if 'to_logits.3.weight' in state_dict:
-    #     del state_dict['to_logits.3.weight']
-    # if 'to_logits.3.bias' in state_dict:
-    #     del state_dict['to_logits.3.bias']
-
+    state_dict = remove_infix(state_dict, 'encoder')
+    state_dict = remove_infix(state_dict, 'decoder')
+    # state_dict = remove_state(state_dict, 'to_logits')
     backbone = setup_network(cfg)
     backbone.load_state_dict(state_dict, strict=False)
 
@@ -138,5 +135,35 @@ def remove_prefix(state_dict: Dict, prefix: str) -> Dict:
 
         key = '.'.join(tokens)
         result[key] = v
+
+    return result
+
+
+def remove_infix(state_dict: Dict, infix: str) -> Dict:
+    result = dict()
+
+    for k, v in state_dict.items():
+        tokens = k.split('.')
+
+        if tokens[1] == infix:
+            tokens = [tokens[0]] + tokens[2:]
+
+        key = '.'.join(tokens)
+        result[key] = v
+
+    return result
+
+def remove_state(state_dict: Dict, key: str) -> Dict:
+    result = dict()
+
+    for k, v in state_dict.items():
+        tokens = k.split('.')
+
+        if key in tokens:
+            # print('flag')
+            continue # skip this key
+
+        k = '.'.join(tokens)
+        result[k] = v
 
     return result
