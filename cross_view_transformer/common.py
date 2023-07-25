@@ -74,7 +74,7 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
 
     state_dict = remove_infix(state_dict, 'encoder')
     state_dict = remove_infix(state_dict, 'decoder')
-    # state_dict = remove_state(state_dict, 'to_logits')
+    state_dict = remove_state(state_dict, 'to_logits')
     backbone = setup_network(cfg)
     backbone.load_state_dict(state_dict, strict=False)
 

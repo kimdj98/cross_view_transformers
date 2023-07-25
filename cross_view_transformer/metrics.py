@@ -72,47 +72,43 @@ class IoUMetric(BaseIoUMetric):
         return super().update(pred, label)
 
 class ADEMetric(Metric):
-    def __init__(self):
+    def __init__(self, modes:int,):
         super().__init__()
         self.min_ADE = 0.0
         self.total = 0
+        self.modes = modes
+        self.SSE = torch.nn.MSELoss(reduction='sum')
 
     def update(self, pred, batch):
-        B, _, _ = pred.shape
-        coord = pred[:, :, :-1].detach()
-        label = batch['label_waypoint'].view(-1, 24)[:, None, :].detach()
+        B, _, _, _ = pred.shape
 
-        SE = (coord - label) ** 2
-        SSE = torch.sum(SE, dim=2)
+        coord = pred[:, :, :, :2].detach()
+        label = batch['label_waypoint'].detach()
 
-        min_SSE = torch.min(SSE, dim=1, keepdim=True)[0]
-        self.min_ADE += torch.sum(min_SSE) / 12
-
+        self.min_ADE += torch.min(torch.stack([self.SSE(coord[:, i, :, :], label) for i in range(self.modes)]))
         self.total += B
 
     def compute(self):
         return self.min_ADE / self.total
 
 class FDEMetric(Metric):
-    def __init__(self):
+    def __init__(self, modes:int,):
         super().__init__()
         self.min_FDE = 0.0
         self.total = 0
+        self.modes = modes
+        self.SSE = torch.nn.MSELoss(reduction='sum')
 
     def update(self, pred, batch):
-        B, _, _ = pred.shape
-        coord = pred[:, :, :-1].detach()
-        label = batch['label_waypoint'].view(-1, 24)[:, None, :].detach()
+        B, _, _, _ = pred.shape
 
-        coord = coord[:, :, -2:]
+        coord = pred[:, :, :, :2].detach()
+        label = batch['label_waypoint'].detach()
+
+        coord = coord[:, :, :, -2:]
         label = label[:, :, -2:]
 
-        SE = (coord - label) ** 2
-        SSE = torch.sum(SE, dim=2)
-
-        min_SSE = torch.min(SSE, dim=1, keepdim=True)[0]
-        self.min_FDE += torch.sum(min_SSE)
-
+        self.min_FDE += torch.min(torch.stack([self.SSE(coord[:, i, :, :], label) for i in range(self.modes)]))
         self.total += B
 
     def compute(self):

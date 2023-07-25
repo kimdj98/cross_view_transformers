@@ -200,12 +200,24 @@ class LoadDataTransform(torchvision.transforms.ToTensor):
         if 'label_waypoint' in sample:
             label_waypoint = torch.tensor(np.float32(sample['label_waypoint']))
 
+        if 'label_vel' in sample:
+            label_vel = torch.tensor(np.float32(sample['label_vel']))
+
+        if 'label_acc' in sample:
+            label_acc = torch.tensor(np.float32(sample['label_acc']))
+        
+        if 'label_yaw' in sample:
+            label_yaw = torch.tensor(np.float32(sample['label_yaw']))
+
         result = {
             'past_coordinate': past_coordinate,
             'past_vel': past_vel,
             'past_acc': past_acc,
             'past_yaw': past_yaw,
             'label_waypoint': label_waypoint,
+            'label_vel': label_vel,
+            'label_acc': label_acc,
+            'label_yaw': label_yaw,
         }
 
         return result

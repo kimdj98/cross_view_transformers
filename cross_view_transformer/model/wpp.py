@@ -8,6 +8,7 @@ class WppNetwork(nn.Module):
         cvt_vehicle_encoder,
         modes: int = 10,
         outputs: dict = {'bev': [0, 1]},
+        **kwargs
     ):
         
         super().__init__()
@@ -93,11 +94,11 @@ class WppNetwork(nn.Module):
         reshaped_components = [comp.reshape(B, -1) for comp in [x, state]]
 
         # Concatenate reshaped data along dimension 1
-        output = torch.cat(reshaped_components, dim=1) # (B, 9251)
+        output = torch.cat(reshaped_components, dim=1)  # (B, 9251)
 
         # predict 10 trajectories for 6 seconds with probabilities
-        output = self.fc(output) # (B, M*(12*2+1))
+        output = self.fc(output)                        # (B, M*(12*2+1))
 
-        output = output.view(B, -1, 12*2 + 1) # (B, M, 12*2+1)
+        output = output.view(B, -1, 12*2 + 1)           # (B, M, 12*2+1)
 
         return output

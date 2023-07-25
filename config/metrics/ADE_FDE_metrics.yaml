@@ -1,5 +1,7 @@
 ADE:
   _target_: cross_view_transformer.metrics.ADEMetric
+  modes: ${model.modes}
 
 FDE:
   _target_: cross_view_transformer.metrics.FDEMetric
+  modes: ${model.modes}
