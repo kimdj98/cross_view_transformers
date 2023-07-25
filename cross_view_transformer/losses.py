@@ -156,7 +156,7 @@ class MinMSELoss(torch.nn.Module):
         SE = (coord - label)**2
         SSE = torch.sum(SE, dim=2)
 
-        min_MSE = torch.min(SSE, dim=1)[0] / M 
+        min_MSE = torch.min(SSE, dim=1)[0] / 12 # 12 time steps
 
         return min_MSE.sum() / B
     
@@ -173,7 +173,7 @@ class MSELoss(torch.nn.Module):
         SE = (coord - label)**2
         SSE = torch.sum(SE, dim=2)
 
-        min_MSE = torch.sum(SSE, dim=1) / M 
+        min_MSE = torch.sum(SSE, dim=1) / (M * 12)
 
         return min_MSE.sum() / B
     
@@ -198,5 +198,5 @@ class CELoss(torch.nn.Module):
 
         CELoss = F.cross_entropy(logit, argmin_SSE)
 
-        return CELoss.sum() / B
+        return CELoss
     

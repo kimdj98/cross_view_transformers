@@ -111,7 +111,7 @@ class FDEMetric(Metric):
         SSE = torch.sum(SE, dim=2)
 
         min_SSE = torch.min(SSE, dim=1, keepdim=True)[0]
-        self.min_FDE += torch.sum(min_SSE) / 12
+        self.min_FDE += torch.sum(min_SSE)
 
         self.total += B
 
