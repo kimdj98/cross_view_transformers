@@ -77,6 +77,7 @@ class ADEMetric(Metric):
         self.min_ADE = 0.0
         self.total = 0
         self.modes = modes
+        self.MSE = torch.nn.MSELoss(reduction='mean')
         self.SSE = torch.nn.MSELoss(reduction='sum')
 
     def update(self, pred, batch):
@@ -85,7 +86,10 @@ class ADEMetric(Metric):
         coord = pred[:, :, :, :2].detach()
         label = batch['label_waypoint'].detach()
 
-        self.min_ADE += torch.min(torch.stack([self.SSE(coord[:, i, :, :], label) for i in range(self.modes)]))
+        SE = (coord - label[:,None,:,:])**2
+        SSE = torch.sum(SE, dim=[2,3])
+        
+        self.min_ADE += torch.sum(torch.min(SSE, dim=1)[0])
         self.total += B
 
     def compute(self):
@@ -105,10 +109,12 @@ class FDEMetric(Metric):
         coord = pred[:, :, :, :2].detach()
         label = batch['label_waypoint'].detach()
 
-        coord = coord[:, :, :, -2:]
-        label = label[:, :, -2:]
+        coord = coord[:, :, -2:, :]
+        label = label[:, -2:, :]
 
-        self.min_FDE += torch.min(torch.stack([self.SSE(coord[:, i, :, :], label) for i in range(self.modes)]))
+        SE = (coord - label[:,None,:,:])**2
+        SSE = torch.sum(SE, dim=[2,3])
+        self.min_FDE += torch.sum(torch.min(SSE, dim=1)[0])
         self.total += B
 
     def compute(self):

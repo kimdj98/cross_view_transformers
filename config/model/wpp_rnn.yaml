@@ -106,10 +106,10 @@ cvt_vehicle_encoder:
     residual: True
     factor: 2
 
-modes: 5
+modes: 2
 dim: 256
 heads: 8
 dim_head: 32
 qkv_bias: True
-
+num_layers: 3
     

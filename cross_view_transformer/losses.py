@@ -177,16 +177,25 @@ class MinMSELoss(torch.nn.Module):
 
 #         return min_MSE.sum() / B
 
+def MSE(pred, label):
+    label = label[:, None, :, :]
+    SE = (pred - label)**2
+    SSE = torch.mean(SE, dim=[2,3])
+    return SSE.sum()
+
 class MSELoss(torch.nn.Module):
     def __init__(self, modes:int):
         super().__init__()
-        self.loss_fn = torch.nn.MSELoss()
+        self.loss_fn = MSE
         self.modes = modes
 
     def forward(self, pred, batch):
         states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
 
-        label = torch.concat((batch[states[0]], batch[states[1]], batch[states[2]], batch[states[3]]), dim=2)
+        # label = torch.concat((batch[states[0]], batch[states[1]], batch[states[2]], batch[states[3]]), dim=2)
+
+        # label = torch.concat((batch[states[0]]), dim=2)
+        label = batch[states[0]]
 
         # Mean Squared Error for each mode
         MSE = [self.loss_fn(label, pred[:, i]) for i in range(self.modes)]
