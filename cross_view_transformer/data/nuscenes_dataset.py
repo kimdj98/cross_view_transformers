@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import cv2
+import math
 
 from pathlib import Path
 from functools import lru_cache
@@ -12,6 +13,7 @@ from .common import INTERPOLATION, get_view_matrix, get_pose, get_split
 from .transforms import Sample, SaveDataTransform
 
 from nuscenes.prediction import PredictHelper
+from nuscenes.nuscenes import NuScenes
 
 STATIC = ['lane', 'road_segment']
 DIVIDER = ['road_divider', 'lane_divider']
@@ -26,7 +28,6 @@ VEHICLE = ['car', 'truck', 'bus', 'trailer', 'construction', 'motorcycle', 'bicy
 
 CLASSES = STATIC + DIVIDER + DYNAMIC
 NUM_CLASSES = len(CLASSES)
-
 
 def get_data(
     dataset_dir,
@@ -138,7 +139,8 @@ class NuScenesDataset(torch.utils.data.Dataset):
         data = []
         sample_token = scene_record['first_sample_token']
 
-        while sample_token:
+        for i in range(scene_record['nbr_samples'] - 14): # for each sample in the scene (except the last 12)
+        # while sample_token:
             sample_record = self.nusc.get('sample', sample_token)
 
             for camera_rig in camera_rigs:
@@ -150,7 +152,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
 
     def parse_pose(self, record, *args, **kwargs):
         return get_pose(record['rotation'], record['translation'], *args, **kwargs)
-
+    
     def parse_sample_record(self, sample_record, camera_rig):
         lidar_record = self.nusc.get('sample_data', sample_record['data']['LIDAR_TOP'])
         egolidar = self.nusc.get('ego_pose', lidar_record['ego_pose_token'])
@@ -185,18 +187,130 @@ class NuScenesDataset(torch.utils.data.Dataset):
             extrinsics.append(E.tolist())
             images.append(image_path)
 
+        # Calculate ego pose in lidar frame
+        orig = np.array(egolidar['translation'][:2])
+
+        # Calculate original heading angle (yaw)
+        q = Quaternion(egolidar['rotation'])
+        yaw, _, _ = q.yaw_pitch_roll
+        orig_yaw = math.degrees(yaw)
+
+        past_coordinate = np.zeros((5,2))
+        past_vel        = np.zeros((5,2))
+        past_acc        = np.zeros((5,2))
+        past_yaw        = np.zeros((5,1))
+
+        label_waypoint  = np.zeros((14,2)) # later cut off to 12 time steps
+        has_pred        = np.zeros((14,1)) 
+        label_vel       = np.zeros((13,2)) # later cut off to 12 time steps
+        label_acc       = np.zeros((12,2)) 
+        label_yaw       = np.zeros((14,1))  
+
+        # get ego states
+        # careful of thinking prev as past token, prev token is future time step token
+        # timestep+0 <- timestep+1 <- timestep+2
+        # curr_token <- prev_token <- pprev_token
+        #      i     <-    i-1     <-     i-2
+        pprev_token = None
+        prev_token = None
+        curr_token = sample_record['token']
+        for i in range(5): # curr: i, prev: i-1, pprev: i-2
+            if not curr_token:
+                break
+            
+            # get current sample data
+            curr_sample = self.nusc.get('sample', curr_token)
+            lidar_data  = self.nusc.get('sample_data', curr_sample['data']['LIDAR_TOP'])
+            curr_ego_token = lidar_data['ego_pose_token']
+            curr_coordinate = self.nusc.get('ego_pose', curr_ego_token)['translation'][:2] - orig
+            curr_yaw = math.degrees(Quaternion(self.nusc.get('ego_pose', curr_ego_token)['rotation']).yaw_pitch_roll[0]) - orig_yaw
+
+            # get ego coordinate (relative to current ego coordinate)
+            past_coordinate[i, :] = curr_coordinate
+            # get ego yaw (relative to current ego yaw)
+            past_yaw[i, :] = curr_yaw
+
+            if prev_token:
+                # get +1 time step sample data
+                prev_sample = self.nusc.get('sample', prev_token)
+                prev_lidar_data = self.nusc.get('sample_data', prev_sample['data']['LIDAR_TOP'])
+                prev_ego_token = prev_lidar_data['ego_pose_token']
+
+                # get ego velocity
+                prev_vel = (past_coordinate[i-1, :] - curr_coordinate) / 0.5
+                past_vel[i-1, :] = prev_vel
+
+            
+            if pprev_token:
+                # get +2 time step sample data
+                pprev_sample = self.nusc.get('sample', pprev_token)
+                pprev_lidar_data = self.nusc.get('sample_data', pprev_sample['data']['LIDAR_TOP'])
+                pprev_ego_token = pprev_lidar_data['ego_pose_token']
+
+                # get ego acceleration
+                pprev_acc = (past_vel[i-2, :] - prev_vel) / 0.5
+                past_acc[i-2, :] = pprev_acc
+            
+            # update step tokens
+            pprev_token = prev_token
+            prev_token = curr_token
+            curr_token = self.nusc.get('sample', curr_token)['prev']
+
+        curr_token = sample_record['token']
+        curr_token = self.nusc.get('sample', curr_token)['next']
+
+        # get labels
+        for i in range(14):
+            if not curr_token:
+                break
+            
+            # get current sample data
+            curr_sample = self.nusc.get('sample', curr_token)
+            lidar_data  = self.nusc.get('sample_data', curr_sample['data']['LIDAR_TOP'])
+            curr_ego_token = lidar_data['ego_pose_token']
+            curr_coordinate = self.nusc.get('ego_pose', curr_ego_token)['translation'][:2] - orig
+            curr_yaw = math.degrees(Quaternion(self.nusc.get('ego_pose', curr_ego_token)['rotation']).yaw_pitch_roll[0]) - orig_yaw
+            
+            label_waypoint[i, :] = curr_coordinate
+            label_yaw[i, :] = curr_yaw
+            has_pred[i, :] = 1
+            curr_token = self.nusc.get('sample', curr_token)['next']
+
+            if (i-1) >= 0:
+                label_vel[i-1, :] = (label_waypoint[i, :] - label_waypoint[i-1, :]) / 0.5
+            
+            if (i-2) >= 0:
+                label_acc[i-2, :] = (label_vel[i-1, :] - label_vel[i-2, :]) / 0.5
+
+        assert has_pred.all() == 1, "all waypoints should have prediction"
+
         return {
+            # sample info
             'scene': self.scene_name,
             'token': sample_record['token'],
 
+            # ego pose info
             'pose': world_from_egolidarflat.tolist(),
             'pose_inverse': egolidarflat_from_world.tolist(),
 
+            # camera info
             'cam_ids': list(camera_rig),
             'cam_channels': cam_channels,
             'intrinsics': intrinsics,
             'extrinsics': extrinsics,
             'images': images,
+            
+            # state info
+            'past_coordinate': past_coordinate.tolist(),
+            'past_vel': past_vel.tolist(),
+            'past_acc': past_acc.tolist(),
+            'past_yaw': past_yaw.tolist(),
+
+            # label info
+            'label_waypoint': label_waypoint[:12].tolist(),
+            'label_vel':      label_vel[:12].tolist(),
+            'label_acc':      label_acc[:12].tolist(),
+            'label_yaw':      label_yaw[:12].tolist(),
         }
 
     def get_dynamic_objects(self, sample, annotations):

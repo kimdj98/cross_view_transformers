@@ -183,6 +183,45 @@ class LoadDataTransform(torchvision.transforms.ToTensor):
 
         return result
     
+    def get_state(self, sample: Sample):
+        
+        if 'past_coordinate' in sample:
+            past_coordinate = torch.tensor(np.float32(sample['past_coordinate']))
+
+        if 'past_vel' in sample:
+            past_vel = torch.tensor(np.float32(sample['past_vel']))
+
+        if 'past_acc' in sample:
+            past_acc = torch.tensor(np.float32(sample['past_acc']))
+
+        if 'past_yaw' in sample:
+            past_yaw = torch.tensor(np.float32(sample['past_yaw']))
+
+        if 'label_waypoint' in sample:
+            label_waypoint = torch.tensor(np.float32(sample['label_waypoint']))
+
+        if 'label_vel' in sample:
+            label_vel = torch.tensor(np.float32(sample['label_vel']))
+
+        if 'label_acc' in sample:
+            label_acc = torch.tensor(np.float32(sample['label_acc']))
+        
+        if 'label_yaw' in sample:
+            label_yaw = torch.tensor(np.float32(sample['label_yaw']))
+
+        result = {
+            'past_coordinate': past_coordinate,
+            'past_vel': past_vel,
+            'past_acc': past_acc,
+            'past_yaw': past_yaw,
+            'label_waypoint': label_waypoint,
+            'label_vel': label_vel,
+            'label_acc': label_acc,
+            'label_yaw': label_yaw,
+        }
+
+        return result
+    
     # get velocity map
     def get_velocity_map(self, sample: Sample):
         scene_dir = self.labels_dir / sample.scene
@@ -205,6 +244,7 @@ class LoadDataTransform(torchvision.transforms.ToTensor):
         result = dict()
         result.update(self.get_cameras(batch, **self.image_config))
         result.update(self.get_bev(batch))
+        result.update(self.get_state(batch))
         result.update(self.get_velocity_map(batch))
 
         return result

@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 
 
 class ModelModule(pl.LightningModule):
-    def __init__(self, backbone, loss_func, metrics, optimizer_args, scheduler_args=None, cfg=None):
+    def __init__(self, backbone, loss_func, metrics, optimizer_args, scheduler_args=None, cfg=True):
         super().__init__()
 
         self.save_hyperparameters(
@@ -80,7 +80,7 @@ class ModelModule(pl.LightningModule):
         """
         for v in dataloaders:
             v.sampler.shuffle = True
-            v.sampler.set_epoch(self.current_epoch)
+            # v.sampler.set_epoch(self.current_epoch)
 
     def configure_optimizers(self, disable_scheduler=False):
         parameters = [x for x in self.backbone.parameters() if x.requires_grad]

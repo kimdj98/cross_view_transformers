@@ -73,7 +73,7 @@ class BEVEmbedding(nn.Module):
         h_meters: int,
         w_meters: int,
         offset: int,
-        decoder_blocks: list,
+        decoder_blocks: list=[],
     ):
         """
         Only real arguments are:
@@ -88,9 +88,13 @@ class BEVEmbedding(nn.Module):
         """
         super().__init__()
 
+        if decoder_blocks:
+            divider = len(decoder_blocks)
+        else:
+            divider = 3
         # each decoder block upsamples the bev embedding by a factor of 2
-        h = bev_height // (2 ** len(decoder_blocks))
-        w = bev_width // (2 ** len(decoder_blocks))
+        h = bev_height // (2 ** divider)
+        w = bev_width // (2 ** divider)
 
         # bev coordinates
         grid = generate_grid(h, w).squeeze(0)

@@ -72,8 +72,54 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
 
+    state_dict = remove_infix(state_dict, 'encoder')
+    state_dict = remove_infix(state_dict, 'decoder')
+    state_dict = remove_state(state_dict, 'to_logits')
     backbone = setup_network(cfg)
-    backbone.load_state_dict(state_dict)
+    backbone.load_state_dict(state_dict, strict=False)
+
+    return backbone
+
+
+def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
+    checkpoint = torch.load(checkpoint_path)
+
+    cfg = DictConfig(checkpoint['hyper_parameters'])
+
+    cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
+    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
+    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
+    # cfg['model']['encoder']['cross_view'].pop('spherical')
+    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
+    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+    cfg = DictConfig(cfg)
+
+    state_dict = remove_prefix(checkpoint['state_dict'], prefix)
+
+    backbone = setup_network(cfg)
+    backbone.load_state_dict(state_dict, strict=True)
+
+    return backbone
+
+def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
+    checkpoint = torch.load(checkpoint_path)
+
+    cfg = DictConfig(checkpoint['hyper_parameters'])
+
+    cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
+    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
+    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
+    # cfg['model']['encoder']['cross_view'].pop('spherical')
+    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
+    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+    cfg = DictConfig(cfg)
+
+    state_dict = remove_prefix(checkpoint['state_dict'], prefix)
+
+    backbone = setup_network(cfg)
+    backbone.load_state_dict(state_dict, strict=True)
+
+
 
     return backbone
 
@@ -89,5 +135,35 @@ def remove_prefix(state_dict: Dict, prefix: str) -> Dict:
 
         key = '.'.join(tokens)
         result[key] = v
+
+    return result
+
+
+def remove_infix(state_dict: Dict, infix: str) -> Dict:
+    result = dict()
+
+    for k, v in state_dict.items():
+        tokens = k.split('.')
+
+        if tokens[1] == infix:
+            tokens = [tokens[0]] + tokens[2:]
+
+        key = '.'.join(tokens)
+        result[key] = v
+
+    return result
+
+def remove_state(state_dict: Dict, key: str) -> Dict:
+    result = dict()
+
+    for k, v in state_dict.items():
+        tokens = k.split('.')
+
+        if key in tokens:
+            # print('flag')
+            continue # skip this key
+
+        k = '.'.join(tokens)
+        result[k] = v
 
     return result

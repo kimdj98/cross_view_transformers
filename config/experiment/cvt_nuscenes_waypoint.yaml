@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /model: wpp
+  - override /data: nuscenes_waypoint
+
+  - override /loss: mse_loss
+  - override /metrics: ADE_FDE_metrics
+
+model:
+  outputs:
+    waypoint: [0, 1]
