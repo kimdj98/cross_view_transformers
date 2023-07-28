@@ -7,6 +7,11 @@ import hydra
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
+import sys
+import os
+
+sys.path.append("/home/kim/my_folder/cross_view_transformers")
+
 from cross_view_transformer.common import setup_config, setup_experiment, load_backbone
 from cross_view_transformer.callbacks.gitdiff_callback import GitDiffCallback
 from cross_view_transformer.callbacks.visualization_callback import VisualizationCallback
