@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp_rnn.WppRnnNetwork
+_target_: cross_view_transformer.model.wpp_rnn.WppNetwork
 cvt_road_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
 
@@ -52,8 +52,6 @@ cvt_road_encoder:
     factor: 2
     
 
-    
-    
 cvt_vehicle_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
 
@@ -112,4 +110,3 @@ heads: 8
 dim_head: 32
 qkv_bias: True
 num_layers: 3
-    

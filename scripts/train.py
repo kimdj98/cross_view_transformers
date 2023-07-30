@@ -82,7 +82,7 @@ def main(cfg):
                                     id=cfg.experiment.uuid)
 
     # seperate callbacks for cross_view_transformers_waypoint
-    if cfg.experiment.project == 'cross_view_transformers_waypoint':
+    if 'cross_view_transformers_waypoint' in cfg.experiment.project:
         callbacks = [
             LearningRateMonitor(logging_interval='epoch'),
             ModelCheckpoint(filename='model',

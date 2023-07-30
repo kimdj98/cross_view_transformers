@@ -3,7 +3,7 @@ import torch
 
 from einops import rearrange, repeat
 
-class WppRnnNetwork(nn.Module):
+class WppNetwork(nn.Module):
     def __init__(
         self,
         cvt_road_encoder,

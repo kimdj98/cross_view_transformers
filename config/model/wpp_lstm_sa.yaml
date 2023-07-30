@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp.WppNetwork
+_target_: cross_view_transformer.model.wpp_lstm_sa.WppNetwork
 cvt_road_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
 
@@ -51,7 +51,7 @@ cvt_road_encoder:
     residual: True
     factor: 2
     
-    
+
 cvt_vehicle_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
 
@@ -103,4 +103,16 @@ cvt_vehicle_encoder:
     blocks: [128, 128, 64]
     residual: True
     factor: 2
-    
+
+
+modes: 2
+dim: 256
+heads: 8
+dim_head: 32
+qkv_bias: True
+num_layers: 2
+num_SAs: 1 # experiment in 1~6
+
+height: 12
+width: 12
+# device: ${trainer.gpus}
