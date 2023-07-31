@@ -1,0 +1,7 @@
+ADE:
+  _target_: cross_view_transformer.metrics_img_sa.ADEMetric
+  modes: ${model.modes}
+
+FDE:
+  _target_: cross_view_transformer.metrics_img_sa.FDEMetric
+  modes: ${model.modes}

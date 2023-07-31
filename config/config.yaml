@@ -25,7 +25,7 @@ loader:
 
 # AdamW
 optimizer:
-  lr: 4e-3
+  lr: 1e-3
   weight_decay: 1e-7
 
 # OneCycleLR
@@ -43,7 +43,7 @@ trainer:
   # max_epochs: 100
   log_every_n_steps: 50
 
-  gpus: [1]
+  gpus: [2]
   precision: 32
 
   limit_train_batches: 1.0
