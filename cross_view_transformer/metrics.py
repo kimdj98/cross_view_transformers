@@ -109,8 +109,8 @@ class FDEMetric(Metric):
         coord = pred[:, :, :, :2].detach()
         label = batch['label_waypoint'].detach()
 
-        coord = coord[:, :, -2:, :]
-        label = label[:, -2:, :]
+        coord = coord[:, :, -1:, :]
+        label = label[:, -1:, :]
 
         SE = (coord - label[:,None,:,:])**2
         SSE = torch.sum(SE, dim=[2,3])
