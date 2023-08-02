@@ -87,9 +87,9 @@ class ADEMetric(Metric):
         label = batch['label_waypoint'].detach()
 
         SE = (coord - label)**2
-        MSE = torch.sum(torch.sqrt(torch.sum(SE, dim=2)), dim=1) / 12
+        ADE = torch.sum(torch.sqrt(torch.sum(SE, dim=2)), dim=1) / 12
         
-        self.min_ADE += torch.sum(MSE)
+        self.min_ADE += torch.sum(ADE)
         self.total += B
 
     def compute(self):
@@ -120,9 +120,9 @@ class FDEMetric(Metric):
         label = label[:, -1:, :]
 
         SE = (coord - label)**2
-        MSE = torch.sum(torch.sqrt(torch.sum(SE, dim=2)), dim=1)
+        FDE = torch.sum(torch.sqrt(torch.sum(SE, dim=2)), dim=1)
 
-        self.min_FDE += torch.sum(MSE)
+        self.min_FDE += torch.sum(FDE)
         self.total += B
 
     def compute(self):

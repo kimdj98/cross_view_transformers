@@ -1,10 +1,17 @@
 import sys
 sys.path.insert(0, '.')
 
+import os
+# Set the wandb directory to the current working directory
+os.environ['WANDB_DIR'] = os.getcwd()
+os.environ['WANDB_CACHE_DIR '] = os.getcwd()
+os.environ['WANDB_CONFIG_DIR'] = os.getcwd()
+
 from pathlib import Path
 
 import logging
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
 import hydra
 
 from pytorch_lightning import LightningModule
@@ -28,7 +35,7 @@ def maybe_resume_training(experiment):
     # checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
     # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_vehicles_50k.ckpt'))
 
-    # checkpoints = list(save_dir.glob(f'**/0725_142329/checkpoints/*.ckpt'))
+    # checkpoints = list(save_dir.glob(f'**/0731_173821/checkpoints/*.ckpt'))
     
     log.info(f'Searching {save_dir}.')
 
@@ -82,7 +89,8 @@ def main(cfg):
     # Loggers and callbacks
     logger = pl.loggers.WandbLogger(project=cfg.experiment.project,
                                     save_dir=cfg.experiment.save_dir,
-                                    id=cfg.experiment.uuid)
+                                    id=cfg.experiment.uuid,
+                                    )
 
     # seperate callbacks for cross_view_transformers_waypoint
     if 'cross_view_transformers_waypoint' in cfg.experiment.project:
@@ -110,7 +118,7 @@ def main(cfg):
                          **cfg.trainer,
                          fast_dev_run=False)
     
-    ckpt_path = None
+    # ckpt_path = None
 
     trainer.fit(model_module, datamodule=data_module, ckpt_path=ckpt_path)
 

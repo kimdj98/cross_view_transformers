@@ -118,7 +118,7 @@ heads: 4
 dim_head: 32
 qkv_bias: True
 num_layers: 2
-num_SAs: 1 # experiment in 1~6
+num_SAs: 2 # experiment in 1~6
 
 height: 12
 width: 12
