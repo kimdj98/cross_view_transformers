@@ -4,7 +4,7 @@ defaults:
   - override /data: nuscenes_lane
 
 trainer:
-  max_steps: 600001
+  max_steps: 75001
 
 loss:
   bce_weight: 0.1

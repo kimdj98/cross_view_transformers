@@ -3,27 +3,26 @@ defaults:
   - override /model: cvt
   - override /data: nuscenes_pedestrian
 
-trainer:
-  max_steps: 600001
-
-loss:
-  bce_weight: 0.1
-  focal_weight: 1.0
+  - override /loss: center_loss
+  - override /metrics: visibility_metrics
 
 model:
   outputs:
     bev: [0, 1]
+    center: [1, 2]
 
 # # @package _global_
 # defaults:
 #   - override /model: cvt
 #   - override /data: nuscenes_pedestrian
 
-#   - override /loss: center_loss
-#   - override /metrics: visibility_metrics
+# trainer:
+#   max_steps: 75001
+
+# loss:
+#   bce_weight: 0.1
+#   focal_weight: 1.0
 
 # model:
 #   outputs:
 #     bev: [0, 1]
-#     center: [1, 2]
-
