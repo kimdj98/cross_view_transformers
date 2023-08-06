@@ -1,0 +1,4 @@
+MSE_weight: 1.0
+MSE:
+  _target_: cross_view_transformer.losses_add_lane.MSELoss
+  modes: ${model.modes}

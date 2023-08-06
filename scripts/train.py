@@ -18,7 +18,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.strategies.ddp import DDPStrategy
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 
-from cross_view_transformer.common import setup_config, setup_experiment, load_backbone, load_backbone_road, load_backbone_vehicle 
+from cross_view_transformer.common import setup_config, setup_experiment, load_backbone, load_backbone_road, load_backbone_vehicle, load_backbone_lane
 from cross_view_transformer.callbacks.gitdiff_callback import GitDiffCallback
 from cross_view_transformer.callbacks.visualization_callback import VisualizationCallback
 
@@ -67,17 +67,26 @@ def main(cfg):
 
     # seperate model loading for cross_view_transformers_waypoint
     if 'cross_view_transformers_waypoint' in cfg.experiment.project:
+        lane_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/lane_ckpt/*.ckpt'))[0]
+        log.info(f'Found {lane_ckpt_path}.')
+
         road_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/road_ckpt/*.ckpt'))[0]
         log.info(f'Found {road_ckpt_path}.')
 
         vehicle_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/vehicle_ckpt/*.ckpt'))[0]
         log.info(f'Found {vehicle_ckpt_path}.')
 
-        model_module.backbone.cvt_road_encoder = load_backbone_road(road_ckpt_path)
-        log.info(f'Loaded {road_ckpt_path}.')
+        if model_module.backbone.cvt_lane_encoder:
+            model_module.backbone.cvt_lane_encoder = load_backbone_lane(lane_ckpt_path)
+            log.info(f'Loaded {lane_ckpt_path}.')
 
-        model_module.backbone.cvt_vehicle_encoder = load_backbone_vehicle(vehicle_ckpt_path)
-        log.info(f'Loaded {vehicle_ckpt_path}.')
+        if model_module.backbone.cvt_road_encoder:
+            model_module.backbone.cvt_road_encoder = load_backbone_road(road_ckpt_path)
+            log.info(f'Loaded {road_ckpt_path}.')
+
+        if model_module.backbone.cvt_vehicle_encoder:
+            model_module.backbone.cvt_vehicle_encoder = load_backbone_vehicle(vehicle_ckpt_path)
+            log.info(f'Loaded {vehicle_ckpt_path}.')
 
     else:
         # Optionally load model

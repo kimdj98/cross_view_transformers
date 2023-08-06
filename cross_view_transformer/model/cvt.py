@@ -19,7 +19,7 @@ class CrossViewTransformer(nn.Module):
 
             dim_total += stop - start
             dim_max = max(dim_max, stop)
-
+    
         assert dim_max == dim_total
 
         self.encoder = encoder
