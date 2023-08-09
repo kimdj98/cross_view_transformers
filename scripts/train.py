@@ -101,23 +101,13 @@ def main(cfg):
                                     id=cfg.experiment.uuid,
                                     )
 
-    # seperate callbacks for cross_view_transformers_waypoint
-    if 'cross_view_transformers_waypoint' in cfg.experiment.project:
-        callbacks = [
-            LearningRateMonitor(logging_interval='epoch'),
-            ModelCheckpoint(filename='model',
-                            every_n_train_steps=cfg.experiment.checkpoint_interval),
-            # VisualizationCallback(viz_fn, cfg.experiment.log_image_interval), # no visualization for waypoint
-            GitDiffCallback(cfg)
-        ]
-    else:
-        callbacks = [
-            LearningRateMonitor(logging_interval='epoch'),
-            ModelCheckpoint(filename='model',
-                            every_n_train_steps=cfg.experiment.checkpoint_interval),
-            VisualizationCallback(viz_fn, cfg.experiment.log_image_interval),
-            GitDiffCallback(cfg)
-        ]
+    callbacks = [
+        LearningRateMonitor(logging_interval='epoch'),
+        ModelCheckpoint(filename='model',
+                        every_n_train_steps=cfg.experiment.checkpoint_interval),
+        VisualizationCallback(viz_fn, cfg.experiment.log_image_interval),
+        GitDiffCallback(cfg)
+    ]
 
     # Train
     trainer = pl.Trainer(logger=logger,

@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp_add_lane.WppNetwork
+_target_: cross_view_transformer.model.wpp_lane_sa.WppNetwork
 
 cvt_lane_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
@@ -157,19 +157,11 @@ cvt_vehicle_encoder:
     residual: True
     factor: 2
 
-backbone:
-  _target_: cross_view_transformer.model.backbones.efficientnet.EfficientNetExtractor
-
-  model_name: efficientnet-b4
-  layer_names: ['reduction_2', 'reduction_4']
-  image_height: ${data.image.h}
-  image_width: ${data.image.w}
-
 modes: 2
-heads: 4
+num_layers: 2
+heads: 8
 dim_head: 32
 qkv_bias: True
-num_layers: 2
 num_SAs: 1 # experiment in 1~6
 
 height: 12

@@ -4,7 +4,7 @@ num_classes: 12                         # do not modify :)
 # used to get_split
 version: 'v1.0-trainval'                # 'v1.0-mini' for debugging
 dataset_dir: /mnt/4TB1/dataset/nuscenes
-labels_dir: /mnt/4TB1/dataset/cvt_labels_nuscenes_v3
+labels_dir: /mnt/4TB1/dataset/cvt_labels_nuscenes_v4
 
 # used to generate dataset
 cameras: [[0, 1, 2, 3, 4, 5]]

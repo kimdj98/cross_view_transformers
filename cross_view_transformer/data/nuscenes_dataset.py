@@ -195,6 +195,10 @@ class NuScenesDataset(torch.utils.data.Dataset):
         yaw, _, _ = q.yaw_pitch_roll
         orig_yaw = math.degrees(yaw)
 
+        angle_in_radian = (np.pi / 2) - yaw
+        rot_matrix = np.array([[np.cos(angle_in_radian), -np.sin(angle_in_radian)],
+                               [np.sin(angle_in_radian), np.cos(angle_in_radian)]], dtype=np.float32)
+
         past_coordinate = np.zeros((5,2))
         past_vel        = np.zeros((5,2))
         past_acc        = np.zeros((5,2))
@@ -223,6 +227,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
             lidar_data  = self.nusc.get('sample_data', curr_sample['data']['LIDAR_TOP'])
             curr_ego_token = lidar_data['ego_pose_token']
             curr_coordinate = self.nusc.get('ego_pose', curr_ego_token)['translation'][:2] - orig
+            curr_coordinate = rot_matrix @ curr_coordinate
             curr_yaw = math.degrees(Quaternion(self.nusc.get('ego_pose', curr_ego_token)['rotation']).yaw_pitch_roll[0]) - orig_yaw
 
             # get ego coordinate (relative to current ego coordinate)
@@ -269,6 +274,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
             lidar_data  = self.nusc.get('sample_data', curr_sample['data']['LIDAR_TOP'])
             curr_ego_token = lidar_data['ego_pose_token']
             curr_coordinate = self.nusc.get('ego_pose', curr_ego_token)['translation'][:2] - orig
+            curr_coordinate = rot_matrix @ curr_coordinate
             curr_yaw = math.degrees(Quaternion(self.nusc.get('ego_pose', curr_ego_token)['rotation']).yaw_pitch_roll[0]) - orig_yaw
             
             label_waypoint[i, :] = curr_coordinate
@@ -625,7 +631,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
         dividers = self.get_line_layers(sample, DIVIDER)                            # 200 200 2 road_divider, lane_divider
         dynamic = self.get_dynamic_layers(sample, anns_dynamic)                     # 200 200 8 car, truck, bus, trailer, construction, pedestrian, motorcycle, bicycle
         velocity_map = self.get_velocity_layers(sample, anns_vehicle, debug=False)   # 200 200 2 vehicles
-        ############################## later: get rid of debug=True ##############################
+
         bev = np.concatenate((static, dividers, dynamic), -1)                       # 200 200 12
         assert bev.shape[2] == NUM_CLASSES
 

@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /model: wpp7_lane_sa
+  - override /data: nuscenes_waypoint
+
+  - override /loss: wpp_lane_sa_loss
+  - override /metrics: wpp_lane_sa_metrics
+
+model:
+  outputs:
+    waypoint: [0, 1]

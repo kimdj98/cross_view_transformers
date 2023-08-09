@@ -4,19 +4,19 @@ import torch.nn.functional as F
 
 from torch.nn.parameter import Parameter
 
+import math
 import numpy as np
-import math 
 
 from einops import rearrange, repeat
 
-def getPositionEncoding(seq_len, d, n=10000):
-    P = np.zeros((seq_len, d))
-    for k in range(seq_len):
-        for i in np.arange(int(d/2)):
-            denominator = np.power(n, 2*i/d)
-            P[k, 2*i] = np.sin(k/denominator)
-            P[k, 2*i+1] = np.cos(k/denominator)
-    return P
+# def getPositionEncoding(seq_len, d, n=10000):
+#     P = np.zeros((seq_len, d))
+#     for k in range(seq_len):
+#         for i in np.arange(int(d/2)):
+#             denominator = np.power(n, 2*i/d)
+#             P[k, 2*i] = np.sin(k/denominator)
+#             P[k, 2*i+1] = np.cos(k/denominator)
+#     return P
 
 def positionalencoding2d(d_model, height, width):
     """
@@ -48,47 +48,34 @@ class WppNetwork(nn.Module):
         cvt_lane_encoder,
         cvt_road_encoder,
         cvt_vehicle_encoder,
-        backbone,
         modes:int,
         num_layers:int,         # number of layers in the LSTM
         heads:int,
         dim_head:int,
         qkv_bias:bool,
         num_SAs:int,            # number of self attentions
-
         height:int,             # for position encoding
         width:int,              # for position encoding
-
         feature_height:int,
         feature_width:int,
         # device: list,
         outputs: dict = {'bev': [0, 1]},
     ):
-        super().__init__()
         
-        self.height = height
-        self.width = width
-        self.feature_height = feature_height
-        self.feature_width = feature_width
-        self.num_layers = num_layers
-        dim = heads * dim_head
-        self.dim = dim
-
+        super().__init__()
         self.cvt_lane_encoder = cvt_lane_encoder
         self.cvt_road_encoder = cvt_road_encoder
         self.cvt_vehicle_encoder = cvt_vehicle_encoder
-        
-        self.backbone = backbone # efficientnet.EfficientNetExtractor
-        
+
+        dim = heads * dim_head
+        self.dim = dim
+
         self.modes = modes
-        self.LSTM = nn.LSTM(7, dim, num_layers, batch_first=True)
+        self.LSTM = nn.LSTM(7, 256, num_layers, batch_first=True)
 
-        # pos_encoding = torch.Tensor(getPositionEncoding(height*width + 2*num_layers + 6*feature_height*feature_width, dim))
-        # torch.manual_seed(2023)
-        pos_encoding = positionalencoding2d(4, 200, 200)
-        # self.register_buffer('pos_encoding', pos_encoding, persistent=True)
-
+        pos_encoding = torch.Tensor(positionalencoding2d(4, 200, 200))
         self.pos_encoding = Parameter(pos_encoding)
+        # self.register_buffer('pos_encoding', pos_encoding, persistent=False)
 
         sa = SelfAttention(dim=dim, heads=heads, dim_head=dim_head, qkv_bias=qkv_bias)
         sa_layers = [sa] * num_SAs
@@ -117,53 +104,41 @@ class WppNetwork(nn.Module):
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
                                 nn.ReLU(),
                                 nn.MaxPool2d(2, stride=2),
-
+                                
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
                                 nn.ReLU(),
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
                                 nn.ReLU(),
-                                nn.MaxPool2d(2, stride=2),                  # (B, dim, h, w) = (B, 256, 12, 12)
+                                nn.MaxPool2d(2, stride=2), # (B, dim, h, w) = (B, 256, 12, 12)
         )
 
-        self.Img_fc = nn.Sequential(
-            nn.Linear(6*feature_height*feature_width*dim, 1024),
-            nn.GELU(),
-            nn.Linear(1024, 1024),
-            nn.GELU(),
-        )
+        # # split the output to query, key, value
+        # self.to_q = nn.Linear(dim, dim, bias=qkv_bias)
+        # self.to_v = nn.Linear(dim, dim, bias=qkv_bias)
+        # self.to_k = nn.Linear(dim, dim, bias=qkv_bias)
 
-        self.Feature_fc = nn.Sequential(
-            nn.Linear((height*width + 2*num_layers)*dim + 35, 1024),
+        self.fc = nn.Sequential(
+            nn.Linear((height*width + num_layers*2)*dim+35, 4096),
             nn.GELU(),
-            nn.Linear(1024, 1024),
+            nn.Linear(4096, 2048),
             nn.GELU(),
-        )
-        
-        self.decoder = nn.Sequential(
-            nn.Linear(2048, 1024),
-            nn.GELU(),
-            nn.Linear(1024, 24)
-        )
-
-        self.img_encoder = ImgEncoder(backbone, dim, feature_height, feature_width)
+            nn.Linear(2048, 24),
+            )
 
     def forward(self, batch):
         B, _, _, _, _ = batch["image"].shape
 
         # Encode road and vehicle features
-        enc_lane = self.cvt_lane_encoder(batch)                                                                 # (b, 128, 25, 25)
-        enc_road = self.cvt_road_encoder(batch)                                                                 # (b, 128, 25, 25)
-        enc_vehicle = self.cvt_vehicle_encoder(batch)                                                           # (b, 128, 25, 25)
-
-        enc_img = self.img_encoder(batch)                                                                       # (b, n, d, fh,fw)
-        enc_img = rearrange(enc_img, 'b n d h w -> b (n h w) d')                                                # (b, n*fh*fw, d)
+        enc_lane = self.cvt_lane_encoder(batch)
+        enc_road = self.cvt_road_encoder(batch)                                                                 # (B, 128, 25, 25)
+        enc_vehicle = self.cvt_vehicle_encoder(batch)                                                           # (B, 128, 25, 25)
 
         lane_bev = enc_lane['bev']
         road_bev = enc_road['bev']
         vehicle_bev = enc_vehicle['bev']
         vehicle_center = enc_vehicle['center']
 
-        x = torch.concat((lane_bev.detach(), road_bev.detach(), vehicle_bev.detach(), vehicle_center.detach()), dim=1)             # (B, 4, 200, 200)
+        x = torch.concat((lane_bev.detach(), road_bev.detach(), vehicle_bev.detach(), vehicle_center.detach()), dim=1)             # (B, 3, 200, 200)
         x += self.pos_encoding
         x = self.Conv(x)                                                                                        # (B, d, h, w)
 
@@ -186,103 +161,19 @@ class WppNetwork(nn.Module):
         h = rearrange(h, 'n b d -> b n d')                                                                      # (B, num_layers, d)
         c = rearrange(c, 'n b d -> b n d')                                                                      # (B, num_layers, d)
         x = rearrange(x, 'b d h w -> b (h w) d')                                                                # (B, h*w, d)
-        y = torch.concat((enc_img, x, h, c), dim=1)                                                             # (B, h*w+num_layers+num_layers, d)
+        y = torch.concat((x, h, c), dim=1)                                                                      # (B, h*w+num_layers+num_layers, d)
 
         y = self.SA_layers(y)                                                                                   # (B, h*w+num_layers+num_layers, d)
 
         y = rearrange(y, 'B n d -> B (n d)')                                                                    # (B, (h*w+num_layers+num_layers)*d)
         state = rearrange(state, 'b t s -> b (t s)')                                                            # (B, 35)
         y = torch.concat((y, state), dim=1)                                                                     # (B, (h*w+num_layers+num_layers)*d + 35)
+        y = self.fc(y)
 
-        y1 = y[:, :self.feature_height*self.feature_width*self.dim*6]                                            # (B, fh*fw*d)
-        y2 = y[:, self.feature_height*self.feature_width*self.dim*6:]                                            # (B, (h*w+num_layers+num_layers)*d + 35)
-        y1 = self.Img_fc(y1)
-        y2 = self.Feature_fc(y2)
-        y = torch.concat((y1, y2), dim=1)
-        y = self.decoder(y)
 
         y = y.view(B, 12, 2)                                                                                    # (B, 12, 2)
         return y
-    
 
-def generate_grid(height: int, width: int):
-    xs = torch.linspace(0, 1, width)
-    ys = torch.linspace(0, 1, height)
-
-    indices = torch.stack(torch.meshgrid((xs, ys), indexing='xy'), 0)       # 2 h w
-    indices = F.pad(indices, (0, 0, 0, 0, 0, 1), value=1)                   # 3 h w
-    indices = indices[None]                                                 # 1 3 h w
-
-    return indices
-
-
-class Normalize(nn.Module):
-    def __init__(self, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
-        super().__init__()
-
-        self.register_buffer('mean', torch.tensor(mean)[None, :, None, None], persistent=False)
-        self.register_buffer('std', torch.tensor(std)[None, :, None, None], persistent=False)
-
-    def forward(self, x):
-        return (x - self.mean) / self.std
-
-
-class ImgEncoder(nn.Module):
-    def __init__(self, 
-                 backbone, 
-                 dim:int,
-                 feat_height:int,
-                 feat_width:int,):
-        super().__init__()
-        self.backbone = backbone
-        self.norm = Normalize()
-
-        # 1 1 3 h w
-        image_plane = generate_grid(feat_height, feat_width)[None]
-        image_plane[:, :, 0] *= feat_width
-        image_plane[:, :, 1] *= feat_height
-
-        self.register_buffer('image_plane', image_plane, persistent=False)
-        self.img_embed = nn.Conv2d(4, dim, 1, bias=False)
-        self.cam_embed = nn.Conv2d(4, dim, 1, bias=False)
-
-    def forward(self, batch):
-        b, n, _, _, _ = batch['image'].shape                                    # b n c h w
-
-        image = batch['image'].flatten(0, 1)                                    # (bn) c h w
-        I_inv = batch['intrinsics'].inverse()                                   # b n 3 3
-        E_inv = batch['extrinsics'].inverse()                                   # b n 4 4
-
-        features = self.backbone(self.norm(image))                              # (bn) d h w
-        # features[0].shape: torch.Size([24, 32, 56, 120])
-        # features[1].shape: torch.Size([24, 112, 14, 30])
-
-        feature = features[-1]
-        feature = rearrange(feature, '(b n) d h w -> b n d h w', b=b, n=n)      # b n d h w
-
-        b, n, _, _, _ = feature.shape                                           # b n d h w
-
-        c = E_inv[..., -1:]                                                     # b n 4 1
-        c_flat = rearrange(c, 'b n ... -> (b n) ...')[..., None]                # (b n) 4 1 1
-        c_embed = self.cam_embed(c_flat)                                        # (b n) d 1 1
-
-        pixel = self.image_plane                                                # b n 3 h w
-        _, _, _, h, w = pixel.shape
-
-        pixel_flat = rearrange(pixel, '... h w -> ... (h w)')                   # b n 3 (h w)
-        cam = I_inv @ pixel_flat                                                # b n 3 (h w)
-        cam = F.pad(cam, (0, 0, 0, 1, 0, 0, 0, 0), value=1)                     # b n 4 (h w)
-        d = E_inv @ cam                                                         # b n 4 (h w)   
-        d_flat = rearrange(d, 'b n d (h w) -> (b n) d h w', h=h, w=w)           # (b n) 4 h w    
-        d_embed = self.img_embed(d_flat)                                        # (b n) d h w
-
-        img_embed = d_embed - c_embed                                           # (b n) d h w
-        img_embed = img_embed / (img_embed.norm(dim=1, keepdim=True) + 1e-7)    # (b n) d h w
-
-        img_embed = rearrange(img_embed, '(b n) d h w -> b n d h w', b=b, n=n)   # b n d h w
-
-        return img_embed                                                        
-        
 
 class SelfAttention(nn.Module):
     def __init__(self, 
