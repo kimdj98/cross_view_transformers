@@ -71,7 +71,7 @@ class WppNetwork(nn.Module):
         self.dim = dim
 
         self.modes = modes
-        self.LSTM = nn.LSTM(7, 256, num_layers, batch_first=True)
+        self.LSTM = nn.LSTM(7, dim, num_layers, batch_first=True)
 
         pos_encoding = torch.Tensor(positionalencoding2d(4, 200, 200))
         self.pos_encoding = Parameter(pos_encoding)
@@ -109,7 +109,7 @@ class WppNetwork(nn.Module):
                                 nn.ReLU(),
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
                                 nn.ReLU(),
-                                nn.MaxPool2d(2, stride=2), # (B, dim, h, w) = (B, 256, 12, 12)
+                                nn.MaxPool2d(2, stride=2), # (B, dim, h, w) = (B, dim, 12, 12)
         )
 
         # # split the output to query, key, value
