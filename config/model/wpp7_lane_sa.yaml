@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp_lane_sa.WppNetwork
+_target_: cross_view_transformer.model.wpp7_lane_sa.WppNetwork
 
 cvt_lane_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
