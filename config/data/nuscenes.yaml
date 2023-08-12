@@ -15,6 +15,12 @@ cameras: [[0, 1, 2, 3, 4, 5]]
 # and will be grouped into one semantic class (vehicle).
 label_indices: null
 
+train:
+  num_samples: 18330
+
+val:
+  num_samples: 3919
+
 # label parameters
 bev:
   h: 200
