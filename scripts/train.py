@@ -22,6 +22,8 @@ from cross_view_transformer.common import setup_config, setup_experiment, load_b
 from cross_view_transformer.callbacks.gitdiff_callback import GitDiffCallback
 from cross_view_transformer.callbacks.visualization_callback import VisualizationCallback
 
+import wandb
+
 log = logging.getLogger(__name__)
 
 CONFIG_PATH = Path.cwd() / 'config'
@@ -49,6 +51,9 @@ def maybe_resume_training(experiment):
 
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
 def main(cfg):
+    # Setup config
+    # HACK to get steps_per_epoch
+    cfg.scheduler.steps_per_epoch = cfg.data.train.num_samples // cfg.loader.batch_size + 1
     setup_config(cfg)
 
     pl.seed_everything(cfg.experiment.seed, workers=True)
@@ -120,6 +125,7 @@ def main(cfg):
     # ckpt_path = None
 
     trainer.fit(model_module, datamodule=data_module, ckpt_path=ckpt_path)
+    wandb.finish()
 
 if __name__ == '__main__':
     main()
