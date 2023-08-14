@@ -82,12 +82,12 @@ class ModelModule(pl.LightningModule):
             v.sampler.shuffle = True
             # v.sampler.set_epoch(self.current_epoch)
 
-    def configure_optimizers(self, disable_scheduler=False):
+    def configure_optimizers(self, disable_scheduler=True):
         parameters = [x for x in self.backbone.parameters() if x.requires_grad]
         optimizer = torch.optim.AdamW(parameters, **self.optimizer_args)
 
         if disable_scheduler or self.scheduler_args is None:
-            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda lr: 1)
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda step: 0.99997**step)
         else:
             scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, **self.scheduler_args)
 
