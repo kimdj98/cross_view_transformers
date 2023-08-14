@@ -101,34 +101,26 @@ class WppNetwork(nn.Module):
         # extract road and vehicle features
         self.Conv = nn.Sequential(
                                 nn.Conv2d(4, 32, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(32),
                                 nn.ReLU(),
                                 nn.Conv2d(32, 64, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(64),
                                 nn.ReLU(),
                                 nn.MaxPool2d(2, stride=2),
 
                                 nn.Conv2d(64, 128, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(128),
                                 nn.ReLU(),
                                 nn.Conv2d(128, 128, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(128),
                                 nn.ReLU(),
                                 nn.MaxPool2d(2, stride=2),
 
                                 nn.Conv2d(128, dim, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(dim),
                                 nn.ReLU(),
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(dim),
                                 nn.ReLU(),
                                 nn.MaxPool2d(2, stride=2),
                                 
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(dim),
                                 nn.ReLU(),
                                 nn.Conv2d(dim, dim, 3, stride=1, padding=1),
-                                nn.BatchNorm2d(dim),
                                 nn.ReLU(),
                                 nn.MaxPool2d(2, stride=2), # (B, dim, h, w) = (B, dim, 12, 12)
         )
@@ -136,21 +128,21 @@ class WppNetwork(nn.Module):
 
         self.Img_fc = nn.Sequential(
             nn.Linear(6*feature_height*feature_width*dim, 1024),
-            nn.LeakyReLU(),
+            nn.GELU(),
             nn.Linear(1024, 1024),
-            nn.LeakyReLU(),
+            nn.GELU(),
         )
 
         self.Feature_fc = nn.Sequential(
             nn.Linear((height*width + 2*num_layers)*dim + 35, 1024),
-            nn.LeakyReLU(),
+            nn.GELU(),
             nn.Linear(1024, 1024),
-            nn.LeakyReLU(),
+            nn.GELU(),
         )
         
         self.decoder = nn.Sequential(
             nn.Linear(2048, 1024),
-            nn.LeakyReLU(),
+            nn.GELU(),
             nn.Linear(1024, 24)
         )
 
