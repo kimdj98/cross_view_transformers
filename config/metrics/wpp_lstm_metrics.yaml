@@ -1,0 +1,7 @@
+ADE:
+  _target_: cross_view_transformer.metrics_lstm.ADEMetric
+  modes: ${model.modes}
+
+FDE:
+  _target_: cross_view_transformer.metrics_lstm.FDEMetric
+  modes: ${model.modes}
