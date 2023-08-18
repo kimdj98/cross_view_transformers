@@ -1,0 +1,4 @@
+MSE_weight: 1.0
+MSE:
+  _target_: cross_view_transformer.ME_losses.weighted_MSELoss
+  weight: 5.0

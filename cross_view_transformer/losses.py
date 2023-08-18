@@ -114,74 +114,30 @@ class MultipleLoss(torch.nn.ModuleDict):
 
         return total, outputs
 
-# # loss for wpp
-# class WppLoss(torch.nn.Module):
-#     def __init__(self, alpha=1.0, beta=1.0):
-#         super().__init__()
-#         self.alpha = alpha
-#         self.beta = beta
+def MSE(pred, label):
+    SE = (pred - label)**2
+    MSE = torch.mean(SE, dim=[1,2])
+    return MSE.sum()
 
-#     def forward(self, pred, batch):
-#         B, M, _ = pred.shape
-
-#         logit = pred[:, :,  -1]
-#         coord = pred[:, :, :-1]
-
-#         label = batch["label_waypoint"].view(-1, 24)[:, None, :]
-
-#         softmax = torch.nn.Softmax(dim=1)
-#         prob = softmax(logit)
-
-#         SE = (coord - label)**2
-#         SSE = torch.sum(SE, dim=2)
-
-#         min_MSE = torch.min(SSE, dim=1)[0] / M
-#         argmin_SSE = torch.argmin(SSE, dim=1)
-
-#         CELoss = F.cross_entropy(logit, argmin_SSE)
-
-#         return min_MSE.sum() + CELoss.sum()
-    
 
 class MinMSELoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, modes:int):
         super().__init__()
+        self.modes = modes
 
     def forward(self, pred, batch):
-        B, M, _ = pred.shape
+        B, M, _, _ = pred.shape
 
-        coord = pred[:, :, :-1]
-        label = batch["label_waypoint"].view(-1, 24)[:, None, :]
+        label = batch["label_waypoint"][:, None, :]
 
-        SE = (coord - label)**2
-        SSE = torch.sum(SE, dim=2)
+        SE = (pred - label)**2
 
-        min_MSE = torch.min(SSE, dim=1)[0] / 12 # 12 time steps
+        SSE = torch.sum(SE, dim=[2,3])
 
-        return min_MSE.sum() / B
+        min_MSE = torch.min(SSE, dim=1).values / 12 # 12 time steps
+        
+        return min_MSE.sum()
     
-# class MSELoss(torch.nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-#     def forward(self, pred, batch):
-#         B, M, _ = pred.shape
-
-#         coord = pred[:, :, :-1]
-#         label = batch["label_waypoint"].view(-1, 24)[:, None, :]
-
-#         SE = (coord - label)**2
-#         SSE = torch.sum(SE, dim=2)
-
-#         min_MSE = torch.sum(SSE, dim=1) / (M * 12)
-
-#         return min_MSE.sum() / B
-
-def MSE(pred, label):
-    label = label[:, None, :, :]
-    SE = (pred - label)**2
-    SSE = torch.mean(SE, dim=[2,3])
-    return SSE.sum()
 
 class MSELoss(torch.nn.Module):
     def __init__(self, modes:int):
@@ -192,16 +148,12 @@ class MSELoss(torch.nn.Module):
     def forward(self, pred, batch):
         states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
 
-        # label = torch.concat((batch[states[0]], batch[states[1]], batch[states[2]], batch[states[3]]), dim=2)
-
-        # label = torch.concat((batch[states[0]]), dim=2)
         label = batch[states[0]]
 
-        # Mean Squared Error for each mode
-        MSE = [self.loss_fn(label, pred[:, i]) for i in range(self.modes)]
-        loss = sum(MSE)
+        MSE = self.loss_fn(label, pred)
 
-        return loss
+        return MSE
+    
     
 class CELoss(torch.nn.Module):
     def __init__(self):
@@ -226,3 +178,20 @@ class CELoss(torch.nn.Module):
 
         return CELoss
     
+
+def weighted_MSE(pred, label, weight:float):
+    Error = (pred - label)
+    
+
+
+class weighted_MSELoss(torch.nn.Module):
+    def __init__(self, weight:float):
+        super().__init__()
+        self.loss_fn = weighted_MSE
+        self.weight = weight
+
+    def forward(self, pred, batch):
+        states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
+        label = batch[states[0]]
+        
+        

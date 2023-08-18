@@ -1,0 +1,7 @@
+MinADE:
+  _target_: cross_view_transformer.metrics.MinADEMetric
+  modes: ${model.modes}
+
+MinFDE:
+  _target_: cross_view_transformer.metrics.MinFDEMetric
+  modes: ${model.modes}
