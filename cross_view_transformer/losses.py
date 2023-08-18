@@ -114,11 +114,6 @@ class MultipleLoss(torch.nn.ModuleDict):
 
         return total, outputs
 
-def MSE(pred, label):
-    SE = (pred - label)**2
-    MSE = torch.mean(SE, dim=[1,2])
-    return MSE.sum()
-
 
 class MinMSELoss(torch.nn.Module):
     def __init__(self, modes:int):
@@ -138,6 +133,12 @@ class MinMSELoss(torch.nn.Module):
         
         return min_MSE.sum()
     
+
+def MSE(pred, label):
+    SE = (pred - label)**2
+    MSE = torch.mean(SE, dim=[1,2])
+    return MSE.sum()
+
 
 class MSELoss(torch.nn.Module):
     def __init__(self, modes:int):

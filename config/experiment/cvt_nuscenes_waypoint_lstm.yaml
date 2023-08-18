@@ -3,8 +3,8 @@ defaults:
   - override /model: wpp10_lstm
   - override /data: nuscenes_waypoint
 
-  - override /loss: wpp_lstm_loss
-  - override /metrics: wpp_lstm_metrics
+  - override /loss: mse_loss
+  - override /metrics: ADE_FDE_metrics
 
 model:
   outputs:
