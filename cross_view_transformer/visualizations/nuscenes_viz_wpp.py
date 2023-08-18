@@ -1,4 +1,4 @@
-from .common_temp import BaseViz
+from .common_wpp import BaseViz
 from ..data.nuscenes_dataset import CLASSES
 
 
