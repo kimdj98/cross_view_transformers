@@ -205,7 +205,7 @@ class WppNetwork(nn.Module):
         for i in range(12):
             output = self.waypoint_predictor(prev_coord, (h0, c0))[0][:, -1, :]
             waypoint[:, i] = self.waypoint_decoder(output)
-            prev_coord = torch.cat((prev_coord[:, 1:], waypoint[:, 0:1 ,:]), dim=1)
+            prev_coord = torch.cat((prev_coord[:, 1:], waypoint[:, i:i+1 ,:]), dim=1)
 
         return waypoint
     
