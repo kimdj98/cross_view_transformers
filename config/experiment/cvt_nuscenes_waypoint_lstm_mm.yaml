@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /model: mm_wpp1_lstm
+  - override /data: nuscenes_mm_waypoint
+
+  - override /loss: mixture_of_experts_loss
+  - override /metrics: min_ADE_metrics
+
+model:
+  outputs:
+    waypoint: [0, 1]
