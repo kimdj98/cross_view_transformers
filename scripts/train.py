@@ -52,8 +52,8 @@ def maybe_resume_training(experiment):
 @hydra.main(config_path=CONFIG_PATH, config_name=CONFIG_NAME)
 def main(cfg):
     # Setup config
-    # HACK to get steps_per_epoch
-    cfg.scheduler.steps_per_epoch = cfg.data.train.num_samples // cfg.loader.batch_size + 1
+    # HACK to get steps_per_epoch only when using one cycle scheduler
+    # cfg.scheduler.steps_per_epoch = cfg.data.train.num_samples // cfg.loader.batch_size + 1
     setup_config(cfg)
 
     pl.seed_everything(cfg.experiment.seed, workers=True)

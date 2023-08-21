@@ -87,8 +87,8 @@ class ModelModule(pl.LightningModule):
         optimizer = torch.optim.AdamW(parameters, **self.optimizer_args)
 
         if disable_scheduler or self.scheduler_args is None:
-            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda step: 0.99997**step)
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda epoch: 0.98**epoch)
         else:
             scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, **self.scheduler_args)
 
-        return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
+        return [optimizer], [{'scheduler': scheduler, 'interval': 'epoch'}]

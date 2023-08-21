@@ -115,21 +115,32 @@ class MultipleLoss(torch.nn.ModuleDict):
         return total, outputs
 
 
+def weighted_MinMSE(pred, label, weight:float):
+    SE = (pred - label)**2
+
+    SE[:, :, :, 0] *= weight
+
+    MSE = torch.sum(SE, dim=[2,3]) / 12 # average 12 time steps
+
+    min_MSE = torch.min(MSE, dim=1).values
+
+    return min_MSE
+
+
 class MinMSELoss(torch.nn.Module):
-    def __init__(self, modes:int):
+    def __init__(self, modes:int, weight:float=1.0):
         super().__init__()
         self.modes = modes
+        self.loss_fn = weighted_MinMSE
+        self.weight = weight
 
     def forward(self, pred, batch):
-        B, M, _, _ = pred.shape
+        waypoint_pred, _ = pred
+        B, M, _, _ = waypoint_pred.shape
 
         label = batch["label_waypoint"][:, None, :]
 
-        SE = (pred - label)**2
-
-        SSE = torch.sum(SE, dim=[2,3])
-
-        min_MSE = torch.min(SSE, dim=1).values / 12 # 12 time steps
+        min_MSE = self.loss_fn(waypoint_pred, label, self.weight)
         
         return min_MSE.sum()
     
@@ -141,10 +152,11 @@ def MSE(pred, label):
 
 
 class MSELoss(torch.nn.Module):
-    def __init__(self, modes:int):
+    def __init__(self, modes:int, weight:float=1.0):
         super().__init__()
         self.loss_fn = MSE
         self.modes = modes
+        self.weight = weight
 
     def forward(self, pred, batch):
         states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
@@ -157,32 +169,33 @@ class MSELoss(torch.nn.Module):
     
     
 class CELoss(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, modes:int):
         super().__init__()
-
+        self.modes = modes
+        
     def forward(self, pred, batch):
-        B, M, _ = pred.shape
+        waypoint_pred, p = pred
+        prob = F.softmax(p, dim=1)
+        B, M = prob.shape
 
-        logit = pred[:, :,  -1]
-        coord = pred[:, :, :-1]
+        label = batch["label_waypoint"].unsqueeze(1)
 
-        label = batch["label_waypoint"].view(-1, 24)[:, None, :]
+        SE = (waypoint_pred - label)**2
+        SSE = torch.sum(SE, dim=[2,3])
 
-        softmax = torch.nn.Softmax(dim=1)
+        min_index = torch.argmin(SSE, dim=1)
+        min_index = F.one_hot(min_index, num_classes=self.modes).float()
 
-        SE = (coord - label)**2
-        SSE = torch.sum(SE, dim=2)
+        CELoss = torch.sum(-min_index * torch.log(prob + 1e-8), dim=1)
 
-        argmin_SSE = torch.argmin(SSE, dim=1)
+        return CELoss.sum()
 
-        CELoss = F.cross_entropy(logit, argmin_SSE)
-
-        return CELoss
-    
 
 def weighted_MSE(pred, label, weight:float):
-    Error = (pred - label)
-    
+    SE = (pred - label)**2
+    SE[:,:,0] *= weight
+
+    return torch.sum(SE, dim=[1,2]) / 12 # average 12 time steps
 
 
 class weighted_MSELoss(torch.nn.Module):
@@ -195,4 +208,7 @@ class weighted_MSELoss(torch.nn.Module):
         states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
         label = batch[states[0]]
         
+        MSE = weighted_MSE(pred, label, self.weight)
+        
+        return MSE.sum()
         

@@ -18,6 +18,7 @@ def getPositionEncoding(seq_len, d, n=10000):
             P[k, 2*i+1] = np.cos(k/denominator)
     return P
 
+
 def positionalencoding2d(d_model, height, width):
     """
     :param d_model: dimension of the model
@@ -41,6 +42,7 @@ def positionalencoding2d(d_model, height, width):
     pe[d_model + 1::2, :, :] = torch.cos(pos_h * div_term).transpose(0, 1).unsqueeze(2).repeat(1, 1, width)
 
     return pe
+
 
 class WppNetwork(nn.Module):
     def __init__(
@@ -140,11 +142,11 @@ class WppNetwork(nn.Module):
             nn.GELU(),
         )
         
-        self.decoder = nn.Sequential(
-            nn.Linear(2048, 1024),
-            nn.GELU(),
-            nn.Linear(1024, 24)
-        )
+        self.Decoders = nn.ModuleList(
+        [nn.Sequential(nn.Linear(2048, 1024),
+                       nn.GELU(),
+                       nn.Linear(1024, 25)) for _ in range(modes)])
+
 
         self.img_encoder = ImgEncoder(backbone, dim, feature_height, feature_width)
 
@@ -200,10 +202,17 @@ class WppNetwork(nn.Module):
         y1 = self.Img_fc(y1)
         y2 = self.Feature_fc(y2)
         y = torch.concat((y1, y2), dim=1)
-        y = self.decoder(y)
+        
 
-        y = y.view(B, 12, 2)                                                                                    # (B, 12, 2)
-        return y
+        waypoint = torch.zeros((B, self.modes, 12, 2), device=y.device)                                         # (B, modes, 12, 2)
+        prob = torch.zeros((B, self.modes), device=y.device)                                                    # (B, modes)
+
+        for m in range(self.modes):
+            output = self.Decoders[m](y)                                                                        # (B, 25)
+            waypoint[:, m] = output[:, :24].view(B, 12, 2)                                                      # (B, 12, 2)
+            prob[:, m] = output[:, 24]                                                                          # (B, 1)
+
+        return waypoint, prob
     
 
 def generate_grid(height: int, width: int):

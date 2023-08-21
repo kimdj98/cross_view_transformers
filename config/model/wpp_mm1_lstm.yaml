@@ -1,4 +1,4 @@
-_target_: cross_view_transformer.model.wpp6_add_lane.WppNetwork
+_target_: cross_view_transformer.model.wpp_mm1_lstm.WppNetwork
 
 cvt_lane_encoder:
   _target_: cross_view_transformer.model.cvt.CrossViewTransformer
@@ -165,7 +165,7 @@ backbone:
   image_height: ${data.image.h}
   image_width: ${data.image.w}
 
-modes: 2
+modes: 5
 heads: 4
 dim_head: 32
 qkv_bias: True

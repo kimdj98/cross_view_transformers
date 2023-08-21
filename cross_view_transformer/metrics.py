@@ -144,6 +144,7 @@ class MinADEMetric(Metric):
         self.modes = modes
 
     def update(self, pred, batch):
+        pred = pred[0]
         B, M, _, _ = pred.shape
 
         coord = pred.detach()
@@ -177,6 +178,7 @@ class MinFDEMetric(Metric):
         self.SSE = torch.nn.MSELoss(reduction='sum')
 
     def update(self, pred, batch):
+        pred = pred[0]
         B, M, _, _ = pred.shape
 
         coord = pred.detach()

@@ -192,6 +192,7 @@ class BaseViz:
 
     @torch.no_grad()
     def visualize(self, batch, pred=None, b_max=8, **kwargs):
+        pred = pred[0] 
         bev = batch['bev']
         label = batch['label_waypoint']
         batch_size = bev.shape[0]

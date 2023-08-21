@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /model: wpp10_lstm
+  - override /model: wpp6_mlp
   - override /data: nuscenes_waypoint
 
   - override /loss: wpp_weighted_mse_loss

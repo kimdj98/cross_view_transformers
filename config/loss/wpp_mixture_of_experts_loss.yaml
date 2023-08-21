@@ -1,0 +1,10 @@
+MSE_weight: 1.0
+MSE:
+  _target_: cross_view_transformer.losses.MinMSELoss
+  modes: ${model.modes}
+  weight: 5.0
+
+CE_weight: 1.0
+CE:
+  _target_: cross_view_transformer.losses.CELoss
+  modes: ${model.modes}

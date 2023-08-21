@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /model: wpp_mm1_lstm
+  - override /model: wpp_mm2_mlp
   - override /data: nuscenes_mm_waypoint
 
   - override /loss: wpp_mixture_of_experts_loss
