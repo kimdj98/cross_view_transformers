@@ -114,33 +114,50 @@ class MultipleLoss(torch.nn.ModuleDict):
 
         return total, outputs
 
-
-def weighted_MinMSE(pred, label, weight:float):
-    SE = (pred - label)**2
-
-    SE[:, :, :, 0] *= weight
-
-    MSE = torch.sum(SE, dim=[2,3]) / 12 # average 12 time steps
-
-    min_MSE = torch.min(MSE, dim=1).values
-
-    return min_MSE
-
-
 class MinMSELoss(torch.nn.Module):
     def __init__(self, modes:int, weight:float=1.0):
         super().__init__()
         self.modes = modes
-        self.loss_fn = weighted_MinMSE
         self.weight = weight
 
     def forward(self, pred, batch):
         waypoint_pred, _ = pred
-        B, M, _, _ = waypoint_pred.shape
+        B, M, _, _  = waypoint_pred.shape
 
-        label = batch["label_waypoint"][:, None, :]
+        label = batch["label_waypoint"].unsqueeze(1)
 
-        min_MSE = self.loss_fn(waypoint_pred, label, self.weight)
+        # calculate angle between predicted endpoint and label endpoint
+        # TODO: maybe make this a separate function
+        pred_endpoint = waypoint_pred[:, :, -1].detach()                                    # (B, M, 2)
+        label_endpoint = label[:, :, -1].detach()                                           # (B, 1, 2)
+
+        pred_end_norm = pred_endpoint / pred_endpoint.norm(dim=2, keepdim=True)             # (B, M, 2)
+        label_end_norm = label_endpoint / label_endpoint.norm(dim=2, keepdim=True)          # (B, 1, 2)
+
+        cos_sim = torch.sum(pred_end_norm * label_end_norm, dim=2)                          # (B, M)
+
+        angles = torch.acos(cos_sim)                                                        # (B, M)
+        angles_degrees = angles * (180 / torch.pi)                                          # (B, M)
+
+
+        # find candidate where angle is less than 5 degrees 
+        candidate = angles_degrees < 5                                                      # (B, M)
+
+        # fill 1 where there is no candidate for all modes
+        exist_cand = (candidate.sum(dim=1) == 0)                                            # (B)
+
+        # fill inf where there is no candidate
+        candidate[exist_cand] = 1
+        candidate = candidate.float()
+        candidate[candidate == 0] = 10000. # think of it as float('inf')
+        
+        SE = (waypoint_pred - label)**2
+        SE[:, :, :, 0] *= self.weight
+        MSE = torch.sum(SE, dim=[2,3]) / 12
+        MSE *= candidate
+
+        min_index = torch.argmin(MSE, dim=1)
+        min_MSE = MSE[torch.arange(B), min_index]
         
         return min_MSE.sum()
     
@@ -159,6 +176,8 @@ class MSELoss(torch.nn.Module):
         self.weight = weight
 
     def forward(self, pred, batch):
+
+        
         states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
 
         label = batch[states[0]]
@@ -180,8 +199,8 @@ class CELoss(torch.nn.Module):
 
         label = batch["label_waypoint"].unsqueeze(1)
 
-        pred_endpoint = waypoint_pred[:, :, -1]                                             # (B, M, 2)
-        label_endpoint = label[:, :, -1]                                                    # (B, 1, 2)
+        pred_endpoint = waypoint_pred[:, :, -1].detach()                                    # (B, M, 2)
+        label_endpoint = label[:, :, -1].detach()                                           # (B, 1, 2)
 
         pred_end_norm = pred_endpoint / pred_endpoint.norm(dim=2, keepdim=True)             # (B, M, 2)
         label_end_norm = label_endpoint / label_endpoint.norm(dim=2, keepdim=True)          # (B, 1, 2)

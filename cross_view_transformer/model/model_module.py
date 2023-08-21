@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-
+from torchviz import make_dot
 
 class ModelModule(pl.LightningModule):
     def __init__(self, backbone, loss_func, metrics, optimizer_args, scheduler_args=None, cfg=True):
@@ -23,6 +23,9 @@ class ModelModule(pl.LightningModule):
     def shared_step(self, batch, prefix='', on_step=False, return_output=True):
         pred = self(batch)
         loss, loss_details = self.loss_func(pred, batch)
+
+        # dot = make_dot(loss)
+        # dot.view()
 
         self.metrics.update(pred, batch)
 
