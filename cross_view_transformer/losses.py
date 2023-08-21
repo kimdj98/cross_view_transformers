@@ -180,14 +180,37 @@ class CELoss(torch.nn.Module):
 
         label = batch["label_waypoint"].unsqueeze(1)
 
+        pred_endpoint = waypoint_pred[:, :, -1]                                             # (B, M, 2)
+        label_endpoint = label[:, :, -1]                                                    # (B, 1, 2)
+
+        pred_end_norm = pred_endpoint / pred_endpoint.norm(dim=2, keepdim=True)             # (B, M, 2)
+        label_end_norm = label_endpoint / label_endpoint.norm(dim=2, keepdim=True)          # (B, 1, 2)
+
+        cos_sim = torch.sum(pred_end_norm * label_end_norm, dim=2)                          # (B, M)
+
+        angles = torch.acos(cos_sim)                                                        # (B, M)
+        angles_degrees = angles * (180 / torch.pi)                                          # (B, M)
+
+        # find candidate where angle is less than 5 degrees 
+        candidate = angles_degrees < 5
+
+        # fill 1 where there is no candidate for all modes
+        exist_cand = (candidate.sum(dim=1) == 0)
+
+        # fill inf where there is no candidate
+        candidate[exist_cand] = 1
+        candidate = candidate.float()
+        candidate[candidate == 0] = float('inf')
+        
         SE = (waypoint_pred - label)**2
         SSE = torch.sum(SE, dim=[2,3])
+
+        SSE *= candidate
 
         min_index = torch.argmin(SSE, dim=1)
         min_index = F.one_hot(min_index, num_classes=self.modes).float()
 
         CELoss = torch.sum(-min_index * torch.log(prob + 1e-8), dim=1)
-
         return CELoss.sum()
 
 
@@ -211,4 +234,4 @@ class weighted_MSELoss(torch.nn.Module):
         MSE = weighted_MSE(pred, label, self.weight)
         
         return MSE.sum()
-        
+
