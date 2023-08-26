@@ -3,7 +3,7 @@ defaults:
   - override /model: wpp_mm2_mlp
   - override /data: nuscenes_mm_waypoint
 
-  - override /loss: wpp_mixture_of_experts_loss
+  - override /loss: wpp_mse_loss
   - override /metrics: min_ADE_metrics
 
 model:

@@ -131,23 +131,28 @@ class MinMSELoss(torch.nn.Module):
         pred_endpoint = waypoint_pred[:, :, -1].detach()                                    # (B, M, 2)
         label_endpoint = label[:, :, -1].detach()                                           # (B, 1, 2)
 
-        pred_end_norm = pred_endpoint / pred_endpoint.norm(dim=2, keepdim=True)             # (B, M, 2)
-        label_end_norm = label_endpoint / label_endpoint.norm(dim=2, keepdim=True)          # (B, 1, 2)
+        unit_pred_end = pred_endpoint / pred_endpoint.norm(dim=2, keepdim=True)             # (B, M, 2)
+        unit_label_end = label_endpoint / label_endpoint.norm(dim=2, keepdim=True)          # (B, 1, 2)
 
-        cos_sim = torch.sum(pred_end_norm * label_end_norm, dim=2)                          # (B, M)
+        label_end_norm = label_endpoint.norm(dim=2, keepdim=True)                           # (B, 1, 1)
+
+        cos_sim = torch.sum(unit_pred_end * unit_label_end, dim=2)                          # (B, M)
 
         angles = torch.acos(cos_sim)                                                        # (B, M)
         angles_degrees = angles * (180 / torch.pi)                                          # (B, M)
-
 
         # find candidate where angle is less than 5 degrees 
         candidate = angles_degrees < 5                                                      # (B, M)
 
         # fill 1 where there is no candidate for all modes
         exist_cand = (candidate.sum(dim=1) == 0)                                            # (B)
+        candidate[exist_cand] = 1
+        
+        # fill 1 where for stationary data
+        stationary = (label_end_norm <= 1e-1).squeeze()                                    # (B)
+        candidate[stationary] = 1
 
         # fill inf where there is no candidate
-        candidate[exist_cand] = 1
         candidate = candidate.float()
         candidate[candidate == 0] = 10000. # think of it as float('inf')
         
@@ -163,9 +168,17 @@ class MinMSELoss(torch.nn.Module):
     
 
 def MSE(pred, label):
-    SE = (pred - label)**2
-    MSE = torch.mean(SE, dim=[1,2])
-    return MSE.sum()
+    if pred.dim() == label.dim() + 1:
+        B, M, _, _ = pred.shape
+        label = label.unsqueeze(1)
+        SE = (pred - label)**2
+        MSE = torch.sum(SE, dim=[2,3]) / 12
+        MSE = MSE # average mode
+        return MSE.sum()
+    else:
+        SE = (pred - label)**2
+        MSE = torch.mean(SE, dim=[1,2])
+        return MSE.sum()
 
 
 class MSELoss(torch.nn.Module):
@@ -176,13 +189,13 @@ class MSELoss(torch.nn.Module):
         self.weight = weight
 
     def forward(self, pred, batch):
+        label = batch["label_waypoint"]
 
-        
-        states = ["label_waypoint", "label_vel", "label_acc", "label_yaw"]
+        if isinstance(pred, tuple):
+            pred = pred[0]
+            assert isinstance(pred, torch.Tensor), f'pred is not a tensor: {type(pred)}' 
 
-        label = batch[states[0]]
-
-        MSE = self.loss_fn(label, pred)
+        MSE = self.loss_fn(pred, label)
 
         return MSE
     
