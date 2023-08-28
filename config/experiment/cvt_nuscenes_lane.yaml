@@ -2,6 +2,7 @@
 defaults:
   - override /model: cvt
   - override /data: nuscenes_lane
+  - override /loss: lane_loss
 
 trainer:
   max_steps: 75001
