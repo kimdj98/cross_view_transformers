@@ -139,12 +139,16 @@ class NuScenesDataset(torch.utils.data.Dataset):
         data = []
         sample_token = scene_record['first_sample_token']
 
-        for i in range(scene_record['nbr_samples'] - 14): # for each sample in the scene (except the last 12)
+        # skip the first sample to get prev image of sample 0
+        sample_token = self.nusc.get('sample', sample_token)['next']
+
+        for i in range(scene_record['nbr_samples'] - 12 - 2 - 1): # for each sample in the scene (except the last 12)
         # while sample_token:
             sample_record = self.nusc.get('sample', sample_token)
+            prev_sample_record = self.nusc.get('sample', sample_record['prev'])
 
             for camera_rig in camera_rigs:
-                data.append(self.parse_sample_record(sample_record, camera_rig))
+                data.append(self.parse_sample_record(sample_record, prev_sample_record, camera_rig))
 
             sample_token = sample_record['next']
 
@@ -153,7 +157,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
     def parse_pose(self, record, *args, **kwargs):
         return get_pose(record['rotation'], record['translation'], *args, **kwargs)
     
-    def parse_sample_record(self, sample_record, camera_rig):
+    def parse_sample_record(self, sample_record, prev_sample_record, camera_rig):
         lidar_record = self.nusc.get('sample_data', sample_record['data']['LIDAR_TOP'])
         egolidar = self.nusc.get('ego_pose', lidar_record['ego_pose_token'])
 
@@ -186,6 +190,30 @@ class NuScenesDataset(torch.utils.data.Dataset):
             intrinsics.append(I)
             extrinsics.append(E.tolist())
             images.append(image_path)
+
+        prev_images = []
+        prev_intrinsics = []
+        prev_extrinsics = []
+
+        for cam_idx in camera_rig:
+            cam_channel = self.CAMERAS[cam_idx]
+            prev_cam_token = prev_sample_record['data'][cam_channel]
+            prev_cam_record = self.nusc.get('sample_data', prev_cam_token)
+            prev_egocam = self.nusc.get('ego_pose', prev_cam_record['ego_pose_token'])
+            prev_cam = self.nusc.get('calibrated_sensor', prev_cam_record['calibrated_sensor_token'])
+
+            prev_cam_from_egocam = self.parse_pose(prev_cam, inv=True)
+            prev_egocam_from_world = self.parse_pose(prev_egocam, inv=True)
+
+            prev_E = prev_cam_from_egocam @ prev_egocam_from_world @ world_from_egolidarflat
+            prev_I = prev_cam['camera_intrinsic']
+
+            prev_full_path = Path(self.nusc.get_sample_data_path(prev_cam_token))
+            prev_image_path = str(prev_full_path.relative_to(self.nusc.dataroot))
+
+            prev_intrinsics.append(prev_I)
+            prev_extrinsics.append(prev_E.tolist())
+            prev_images.append(prev_image_path)
 
         # Calculate ego pose in lidar frame
         orig = np.array(egolidar['translation'][:2])
@@ -305,6 +333,11 @@ class NuScenesDataset(torch.utils.data.Dataset):
             'intrinsics': intrinsics,
             'extrinsics': extrinsics,
             'images': images,
+
+            # prev camera info
+            'prev_intrinsics': prev_intrinsics,
+            'prev_extrinsics': prev_extrinsics,
+            'prev_images': prev_images,
             
             # state info
             'past_coordinate': past_coordinate.tolist(),
@@ -422,14 +455,21 @@ class NuScenesDataset(torch.utils.data.Dataset):
 
                 prev_corners = prev_box.bottom_corners()                                # 3 4
                 prev_center = prev_corners.mean(-1)                                     # 3
+                prev_front = (prev_corners[:, 0] + prev_corners[:, 1]) / 2.0            # 3
+                prev_left = (prev_corners[:, 0] + prev_corners[:, 3]) / 2.0             # 3
 
-                velocity = center - prev_center                                         # 3
+                prev_p = np.concatenate((prev_corners, np.stack((prev_center, prev_front, prev_left), -1)), -1) # 3 7
+                prev_p = np.pad(prev_p, ((0, 1), (0, 0)), constant_values=1.0)          # 4 7
+                prev_p = V @ S @ M_inv @ prev_p                                         # 3 7
+                
+                velocity = p[:, 4:5] - prev_p[:, 4:5]                                   # 3 1
+
+                velocity = velocity.squeeze(axis=1)
+                yield p, velocity                                                           # 3 7
 
             else:
                 velocity = np.zeros(3)                                                  # 3
-
-
-            yield p, velocity                                                                 # 3 7
+                yield p, velocity
 
 
     def get_category_index(self, name, categories):
@@ -560,7 +600,7 @@ class NuScenesDataset(torch.utils.data.Dataset):
     def get_velocity_layers(self,
                             sample, 
                             vehicle_annotations, 
-                            debug=False # debug keyword for visualization
+                            debug=False # for visualization
                             ): 
         h, w = self.bev_shape[:2]
         result = list()
