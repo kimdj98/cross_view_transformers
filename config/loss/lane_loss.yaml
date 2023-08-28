@@ -11,5 +11,5 @@ focal:
   _target_: cross_view_transformer.losses.BinarySegmentationLoss
 
   label_indices: ${data.label_indices}
-  gamma: 5.0
+  gamma: 1.0
   alpha: -1.0
