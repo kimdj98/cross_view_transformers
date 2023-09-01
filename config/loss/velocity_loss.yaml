@@ -1,0 +1,3 @@
+MSE_weight: 1.0
+MSE:
+  _target_: cross_view_transformer.losses.velocity_loss
