@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - /data/nuscenes
-  - /visualization/nuscenes_mm_wp_viz
+  - /visualization/nuscenes_viz_mm_wp
 
 data:
   road_label_indices: [[0, 1]]
