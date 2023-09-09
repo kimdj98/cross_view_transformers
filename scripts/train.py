@@ -34,6 +34,7 @@ def maybe_resume_training(experiment):
     save_dir = Path(experiment.save_dir).resolve()
     checkpoints = None
 
+    # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_road_75k.ckpt'))
     # checkpoints = list(save_dir.glob(f'**/{experiment.uuid}/checkpoints/*.ckpt'))
     # checkpoints = list(save_dir.glob(f'**/cvt_nuscenes_vehicles_50k.ckpt'))
 
@@ -63,15 +64,8 @@ def main(cfg):
     # Create and load model/data
     model_module, data_module, viz_fn = setup_experiment(cfg)
 
-    ckpt_path = maybe_resume_training(cfg.experiment)
-
-    if ckpt_path is not None:
-        log.info(f'Found {ckpt_path}.')
-        model_module.backbone = load_backbone(ckpt_path)
-        log.info(f'Loaded {ckpt_path}.')
-
     # seperate model loading for cross_view_transformers_waypoint
-    if 'cross_view_transformers_waypoint' in cfg.experiment.project:
+    if 'waypoint' in cfg.experiment.project:
         lane_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/lane_ckpt/*.ckpt'))[0]
         log.info(f'Found {lane_ckpt_path}.')
 
@@ -92,6 +86,29 @@ def main(cfg):
         if model_module.backbone.cvt_vehicle_encoder:
             model_module.backbone.cvt_vehicle_encoder = load_backbone_vehicle(vehicle_ckpt_path)
             log.info(f'Loaded {vehicle_ckpt_path}.')
+
+    elif 'velocity' in cfg.experiment.project:
+        vehicle_ckpt_path = vehicle_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/vehicle_ckpt/*.ckpt'))[0]
+        log.info(f'Found {vehicle_ckpt_path}.')
+
+        if model_module.backbone.cvt:
+            model_module.backbone.cvt = load_backbone_vehicle(vehicle_ckpt_path)
+            log.info(f'Loaded {vehicle_ckpt_path}.')
+
+    elif 'lane_cond' in cfg.experiment.project:
+        lane_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/lane_ckpt/*.ckpt'))[0]
+        log.info(f'Found {lane_ckpt_path}.')
+
+        road_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/road_ckpt/*.ckpt'))[0]
+        log.info(f'Found {road_ckpt_path}.')
+
+        if model_module.backbone.cvt_lane:
+            model_module.backbone.cvt_lane = load_backbone_lane(lane_ckpt_path)
+            log.info(f'Loaded {lane_ckpt_path}.')
+
+        if model_module.backbone.cvt_road:
+            model_module.backbone.cvt_road = load_backbone_road(road_ckpt_path)
+            log.info(f'Loaded {road_ckpt_path}.')
 
     else:
         # Optionally load model
@@ -122,7 +139,7 @@ def main(cfg):
                          **cfg.trainer,
                          fast_dev_run=False)
     
-    # ckpt_path = None
+    ckpt_path = None
 
     trainer.fit(model_module, datamodule=data_module, ckpt_path=ckpt_path)
     wandb.finish()

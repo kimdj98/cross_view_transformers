@@ -63,11 +63,7 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
     cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
-    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
-    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
-    # cfg['model']['encoder']['cross_view'].pop('spherical')
-    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
-    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+
     cfg = DictConfig(cfg)
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
@@ -87,11 +83,7 @@ def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
     cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
-    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
-    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
-    # cfg['model']['encoder']['cross_view'].pop('spherical')
-    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
-    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+
     cfg = DictConfig(cfg)
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
@@ -107,11 +99,7 @@ def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
     cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
-    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
-    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
-    # cfg['model']['encoder']['cross_view'].pop('spherical')
-    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
-    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+    
     cfg = DictConfig(cfg)
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)
@@ -127,11 +115,7 @@ def load_backbone_lane(checkpoint_path: str, prefix: str = 'backbone'):
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
     cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
-    # cfg['model']['encoder']['backbone']['image_height'] = cfg['model']['encoder']['backbone'].pop('input_height')
-    # cfg['model']['encoder']['backbone']['image_width'] = cfg['model']['encoder']['backbone'].pop('input_width')
-    # cfg['model']['encoder']['cross_view'].pop('spherical')
-    # cfg['model']['encoder']['bev_embedding']['sigma'] = 1.0
-    # cfg['model']['encoder']['bev_embedding']['offset'] = 0.0
+
     cfg = DictConfig(cfg)
 
     state_dict = remove_prefix(checkpoint['state_dict'], prefix)

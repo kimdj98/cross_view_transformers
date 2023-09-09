@@ -12,3 +12,7 @@ wandb
 outputs
 temp
 scripts/temp.py
+
+*.gif
+*.png
+*.ipynb
