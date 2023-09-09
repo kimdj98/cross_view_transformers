@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - override /model: cvt_vel_pred
+  - override /data: nuscenes_velocity
+
+  - override /loss: velocity_loss
+  - override /metrics: velocity_metrics
+
+model:
+  outputs:
+    bev: [0, 1]
+    center: [1, 2]
+    velocity_x: [2, 3]
+    velocity_y: [3, 4]

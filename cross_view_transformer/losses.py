@@ -1,6 +1,7 @@
 import torch
 import logging
 import torch.nn.functional as F
+import torch.nn as nn
 
 from fvcore.nn import sigmoid_focal_loss
 
@@ -267,3 +268,11 @@ class weighted_MSELoss(torch.nn.Module):
         
         return MSE.sum()
 
+
+class velocity_loss(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.loss_fn = nn.MSELoss()
+
+    def forward(self, pred, batch):
+        return self.loss_fn(pred, batch["velocity_map"].float())
