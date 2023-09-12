@@ -102,6 +102,9 @@ def main(cfg):
         road_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/road_ckpt/*.ckpt'))[0]
         log.info(f'Found {road_ckpt_path}.')
 
+        vehicle_ckpt_path = list(Path(cfg.experiment.save_dir).glob('**/vehicle_ckpt/*.ckpt'))[0]
+        log.info(f'Found {vehicle_ckpt_path}.')
+
         if model_module.backbone.cvt_lane:
             model_module.backbone.cvt_lane = load_backbone_lane(lane_ckpt_path)
             log.info(f'Loaded {lane_ckpt_path}.')
@@ -109,6 +112,10 @@ def main(cfg):
         if model_module.backbone.cvt_road:
             model_module.backbone.cvt_road = load_backbone_road(road_ckpt_path)
             log.info(f'Loaded {road_ckpt_path}.')
+
+        # if model_module.backbone.cvt_vehicle:
+        #     model_module.backbone.cvt_vehicle = load_backbone_vehicle(vehicle_ckpt_path)
+        #     log.info(f'Loaded {vehicle_ckpt_path}.')
 
     else:
         # Optionally load model

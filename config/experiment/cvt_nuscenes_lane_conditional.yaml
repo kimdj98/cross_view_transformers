@@ -5,10 +5,9 @@ defaults:
   - override /loss: lane_loss
 
 trainer:
-  max_steps: 75001
+  max_steps: 150001
 
 loss:
-  bce_weight: 0.1
   focal_weight: 1.0
 
 model:

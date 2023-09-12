@@ -6,12 +6,17 @@ class LaneSegmentation(nn.Module):
         self,
         cvt_road,
         cvt_lane,
+        # cvt_vehicle = None,
         outputs: dict = {'bev': [0, 1]}
     ):
         super().__init__()
         self.cvt_road = cvt_road
         self.cvt_lane = cvt_lane
-        self.UNet = UNet(2,1)
+        # self.cvt_vehicle = cvt_vehicle
+        # if self.cvt_vehicle:
+        #     self.UNet = UNet(4, 1)
+        # else:
+        self.UNet = UNet(2, 1)
 
     def forward(self, batch):
         cond = self.cvt_road(batch)
@@ -19,6 +24,10 @@ class LaneSegmentation(nn.Module):
         h = self.cvt_lane(batch)
 
         h = torch.cat([h['bev'], cond['bev'].detach()], dim=1)
+
+        # if self.cvt_vehicle:
+        #     h_vehicle = self.cvt_vehicle(batch)
+        #     h = torch.cat([h, h_vehicle['bev'].detach(), h_vehicle['center'].detach()], dim=1) 
 
         h = self.UNet(h)
 
