@@ -323,7 +323,8 @@ class Encoder(nn.Module):
     def forward(self, batch):
         b, n, _, _, _ = batch['image'].shape            # b n c h w
 
-        image = batch['image'].flatten(0, 1)            # (bn) c h w
+        image = batch['image'].flatten(0, 1)        # (bn) c h w
+
         I_inv = batch['intrinsics'].inverse()           # b n 3 3
         E_inv = batch['extrinsics'].inverse()           # b n 4 4
 

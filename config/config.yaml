@@ -9,7 +9,8 @@ defaults:
   - metrics: default_metrics
 
 experiment:
-  project: cross_view_transformers_train_waypoint_mm              # wandb project
+  project: cross_view_transformers_waypoint_v2        # wandb project
+  # project: cross_view_transformers_train_lane_conditional
   # project: debug
   uuid: ${now:%m%d_%H%M%S}                            # model name
   save_dir: ${hydra:runtime.cwd}/logs/                # log directory, will be created
@@ -26,7 +27,7 @@ loader:
 
 # AdamW
 optimizer:
-  lr: 1e-3
+  lr: 1e-4
   weight_decay: 1e-7
 
 # changed scheduler -> LambdaLR
@@ -47,10 +48,10 @@ scheduler:
 trainer:
   # max_steps: 4583 # 1200000 # 5563 # 22249
   # max_steps: 10
-  max_epochs: 50
+  max_epochs: 100
   log_every_n_steps: 50
 
-  gpus: [0]
+  gpus: [3]
   precision: 32
 
   limit_train_batches: 1.0

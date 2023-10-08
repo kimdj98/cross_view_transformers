@@ -58,7 +58,7 @@ def setup_experiment(cfg: DictConfig) -> Tuple[ModelModule, DataModule, Callable
 
 
 def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
@@ -78,7 +78,7 @@ def load_backbone(checkpoint_path: str, prefix: str = 'backbone'):
 
 
 def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
@@ -94,7 +94,7 @@ def load_backbone_road(checkpoint_path: str, prefix: str = 'backbone'):
     return backbone
 
 def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
@@ -110,7 +110,7 @@ def load_backbone_vehicle(checkpoint_path: str, prefix: str = 'backbone'):
     return backbone
 
 def load_backbone_lane(checkpoint_path: str, prefix: str = 'backbone'):
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
 
     cfg = DictConfig(checkpoint['hyper_parameters'])
 
@@ -125,6 +125,35 @@ def load_backbone_lane(checkpoint_path: str, prefix: str = 'backbone'):
 
     return backbone
 
+def load_backbone_lane_cond(checkpoint_path: str, part: str, prefix: str = 'backbone'):
+
+    checkpoint = torch.load(checkpoint_path, map_location='cpu')
+
+    cfg = DictConfig(checkpoint['hyper_parameters'])
+
+    cfg = OmegaConf.to_object(checkpoint['hyper_parameters'])
+
+    cfg = DictConfig(cfg)
+
+    state_dict = remove_prefix(checkpoint['state_dict'], prefix)
+
+    ################################################
+    # HACK: just in this case, I noticed that I've made a mistake training the lane encoder model
+    ################################################
+    cfg.model.cvt_lane.encoder.cross_view.heads = 8
+    
+    backbone = setup_network(cfg)
+    backbone.load_state_dict(state_dict, strict=True)
+
+    if part == 'lane_encoder':
+        return backbone.cvt_lane
+    
+    elif part == 'road_encoder':
+        return backbone.cvt_road
+    
+    elif part == 'lane_head':
+        return backbone.UNet
+    
 def remove_prefix(state_dict: Dict, prefix: str) -> Dict:
     result = dict()
 

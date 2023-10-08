@@ -174,8 +174,12 @@ def MSE(pred, label):
         label = label.unsqueeze(1)
         SE = (pred - label)**2
         MSE = torch.sum(SE, dim=[2,3]) / 12
-        MSE = MSE # average mode
-        return MSE.sum()
+
+        min_index = torch.argmin(MSE, dim=1)
+        min_MSE = MSE[torch.arange(B), min_index]
+
+        # MSE = MSE # average mode
+        return min_MSE.sum()
     else:
         SE = (pred - label)**2
         MSE = torch.mean(SE, dim=[1,2])

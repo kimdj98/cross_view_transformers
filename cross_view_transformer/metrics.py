@@ -192,7 +192,7 @@ class MinFDEMetric(Metric):
 
         SE = (coord - label)**2
         FDE = torch.sqrt(torch.sum(SE, dim=3))
-        FDE = FDE.squeeze()
+        FDE = FDE.squeeze(dim=2)
         min_FDE = torch.min(FDE, dim=1)[0]
 
         self.min_FDE += torch.sum(min_FDE)
