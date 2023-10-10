@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - /data/nuscenes
+  - /visualization/nuscenes_viz_lane_road
+
+data:
+  road:
+    label_indices: [[0, 1]]
+  lane:
+    label_indices: [[2, 3]]

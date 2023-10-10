@@ -1,0 +1,2 @@
+_target_: cross_view_transformer.visualizations.nuscenes_viz_lane_road.NuScenesViz
+label_indices: ${data.label_indices}

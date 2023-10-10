@@ -1,0 +1,15 @@
+focal_road_weight: 1.0
+focal_road:
+  _target_: cross_view_transformer.losses.BinarySegmentationLoss
+
+  label_indices: ${data.road.label_indices}
+  gamma: 2.0
+  alpha: -1.0
+
+focal_lane_weight: 1.0
+focal_lane:
+  _target_: cross_view_transformer.losses.BinarySegmentationLoss
+
+  label_indices: ${data.lane.label_indices}
+  gamma: 2.0
+  alpha: -1.0

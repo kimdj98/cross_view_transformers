@@ -56,8 +56,13 @@ class IoUMetric(BaseIoUMetric):
         self.min_visibility = min_visibility
 
     def update(self, pred, batch):
-        if isinstance(pred, dict):
-            pred = pred['bev']                                                              # b c h w
+        if self.label_indices == [[2, 3]]:
+            pred = pred['lane_bev']
+        elif self.label_indices == [[0, 1]]:
+            pred = pred['road_bev']
+        else: 
+            if isinstance(pred, dict):
+                pred = pred['bev']                                                              # b c h w
 
         label = batch['bev']                                                                # b n h w
         label = [label[:, idx].max(1, keepdim=True).values for idx in self.label_indices]

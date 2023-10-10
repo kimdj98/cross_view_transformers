@@ -110,8 +110,15 @@ class MultipleLoss(torch.nn.ModuleDict):
         self._weights = weights
 
     def forward(self, pred, batch):
-        outputs = {k: v(pred, batch) for k, v in self.items()}
-        total = sum(self._weights[k] * o for k, o in outputs.items())
+        # used for concurrently segmenting road and lane
+        if 'focal_road' in self.keys() and 'focal_lane' in self.keys():
+            lane_loss = self['focal_lane'](pred['lane_bev'], batch)
+            road_loss = self['focal_road'](pred['road_bev'], batch)
+            outputs = {'focal_lane': lane_loss, 'focal_road': road_loss}
+            total = sum(self._weights[k] * o for k, o in outputs.items())
+        else:
+            outputs = {k: v(pred, batch) for k, v in self.items()}
+            total = sum(self._weights[k] * o for k, o in outputs.items())
 
         return total, outputs
 

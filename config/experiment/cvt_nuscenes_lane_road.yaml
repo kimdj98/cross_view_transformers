@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - override /model: cvt_lane_road
+  - override /data: nuscenes_lane_road
+  - override /loss: lane_road_loss
+  - override /metrics: lane_road_metrics
+
+trainer:
+  max_steps: 75001
+
+model:
+  outputs:
+    bev_lane: [0, 1]
+    bev_road: [1, 2]
